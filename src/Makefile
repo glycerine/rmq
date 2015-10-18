@@ -32,6 +32,7 @@ clean:
 	find . -name '*[.]so' | xargs rm -f
 	find . -name '*[.]o' | xargs rm -f
 	rm -f rmq.h rmq.so _example_main rmq/libinterface.a  *.o example.so example.h
+	rm -f ../bin/*
 	# warning: do not delete vendor.tar.gz here or the 'make check' and 'make build' will fail.
 
 check:
@@ -65,3 +66,6 @@ thrift-run:
 	../bin/thrift-ex-server -secure &
 	sleep 1 && ../bin/thrift-ex-client -secure
 	sleep 1 && pkill -9 thrift-ex-server
+
+superclean: clean
+	rm -f vendor.tar.gz
