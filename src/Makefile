@@ -55,7 +55,9 @@ thrift-all:
 
 thrift-regen:
 	rm -rf vendor/shared vendor/tutorial
-	thrift -version || true # thrift -version needs to be 1.0.0-dev ! 
+	# check thrift version.
+	thrift -version || true
+	if test "$(shell thrift -version)" != "Thrift version 1.0.0-dev"; then echo "wrong version of thrift: 1.0.0-dev required!"; exit 1; fi;
 	thrift --gen go -out vendor -r -I idl idl/tutorial.thrift
 
 
