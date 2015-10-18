@@ -11,7 +11,7 @@ all:
 	#
 	gcc -c -o interface.o cpp/interface.cpp -Iinclude/
 	ar cr go/libinterface.a interface.o
-	go build -buildmode=c-shared  -o rmq.so  go/rmq.go
+	go build -buildmode=c-shared  -o rmq.so go/src/rmq/rmq.go
 
 r-install-test:
 	cd ../..  &&  R CMD INSTALL rmq
@@ -20,7 +20,7 @@ r-install-test:
 c-test: go/rmq.go cpp/_example_main.c
 	gcc -c -o interface.o cpp/interface.cpp -Iinclude/
 	ar cr go/libinterface.a interface.o
-	go build -buildmode=c-shared  -o example.so  go/rmq.go
+	go build -buildmode=c-shared  -o example.so  go/src/rmq/rmq.go
 	gcc -o _example_main cpp/_example_main.c example.so -I. -Iinclude/
 	./_example_main
 

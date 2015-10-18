@@ -2,8 +2,8 @@
 package main
 
 /*
-#cgo LDFLAGS: -lR ${SRCDIR}/libinterface.a
-#cgo CFLAGS: -I../include
+#cgo LDFLAGS: -lR ${SRCDIR}/../../libinterface.a
+#cgo CFLAGS: -I${SRCDIR}/../../../include
 #include <string.h>
 #include "interface.h"
 */
