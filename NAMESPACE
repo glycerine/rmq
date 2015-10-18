@@ -1,0 +1,6 @@
+useDynLib(rmq)
+
+export(
+       rmq
+       )
+       
