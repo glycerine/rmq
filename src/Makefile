@@ -9,6 +9,9 @@ all:
 	# link against it are actually embedded in the rmq.go file at the top.
 	# Namely: #cgo LDFLAGS: -lR ${SRCDIR}/libinterface.a
 	#
+	# "R CMD build" buggily refuses to tar up our src/vendor/ contents for us, so we must resort to
+	# packing vendor.tar.gz and unpacking it when installing.
+	if test "$$R_INSTALL_PKG" = "rmq"; then echo "R_INSTALL_PKG = rmq found in env, unpacking vendor.tar.gz" >> note.untar; tar xf vendor.tar.gz; fi;
 	gcc -c -o interface.o cpp/interface.cpp -Iinclude/
 	ar cr rmq/libinterface.a interface.o
 	GOPATH=${CURDIR}/.. GO15VENDOREXPERIMENT=1 go build -buildmode=c-shared  -o rmq.so rmq/rmq.go
@@ -28,7 +31,16 @@ clean:
 	find . -name '*~' | xargs rm -f
 	find . -name '*[.]so' | xargs rm -f
 	find . -name '*[.]o' | xargs rm -f
-	rm -f rmq.h rmq.so _example_main go/libinterface.a  *.o example.so example.h
+	rm -f rmq.h rmq.so _example_main rmq/libinterface.a  *.o example.so example.h
+	# warning: do not delete vendor.tar.gz here or the 'make check' and 'make build' will fail.
 
 check:
-	cd ../.. && R CMD build rmq && R CMD check rmq_0.0.1.tar.gz
+	tar --exclude dot[.]git -c -v -f - vendor |gzip > vendor.tar.gz
+	cd ../.. && R CMD build rmq && R CMD check --no-manual --no-build-vignettes --no-codoc rmq_1.0.1.tar.gz
+
+build:
+	tar --exclude dot[.]git -c -v -f - vendor |gzip > vendor.tar.gz
+	cd ../.. && R CMD build rmq
+
+vtree:
+	tar --exclude dot[.]git -c -v -f - vendor |gzip > vendor.tar.gz

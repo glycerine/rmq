@@ -1,6 +1,6 @@
 Package: rmq
 Title: RMQ
-Version: 0.0.1
+Version: 1.0.1
 Maintainer: Jason E. Aten <j.e.aten@gmail.com>
 Author: Jason E. Aten <j.e.aten@gmail.com>
 Description: Package rmq provides a message queuing and rpc facility.
