@@ -3,7 +3,7 @@ Title: RMQ
 Version: 0.0.1
 Maintainer: Jason E. Aten <j.e.aten@gmail.com>
 Author: Jason E. Aten <j.e.aten@gmail.com>
-Description: 
+Description: rmq
 License: Apache 2.0.
 SystemRequirements: latest golang (go) release.
 URL: https://github.com/glycerine/rmq
