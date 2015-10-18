@@ -2,16 +2,21 @@
 package main
 
 /*
-#cgo LDFLAGS: -lR ${SRCDIR}/../../libinterface.a
-#cgo CFLAGS: -I${SRCDIR}/../../../include
+#cgo LDFLAGS: -lR ${SRCDIR}/libinterface.a
+#cgo CFLAGS: -I${SRCDIR}/../include
 #include <string.h>
 #include "interface.h"
 */
 import "C"
 import "fmt"
+import "github.com/glycerine/especial"
 
 //export SayHello
 func SayHello(str_ C.SEXP) C.SEXP {
+
+	if especial.Esp() != "Esp() called" {
+		panic("especial not linked!")
+	}
 
 	if C.TYPEOF(str_) != C.STRSXP {
 		fmt.Printf("not a STRXSP! instead: %d, argument to rmq() must be a string to be decoded to its integer constant value in the rmq pkg.\n", C.TYPEOF(str_))

@@ -10,20 +10,25 @@ all:
 	# Namely: #cgo LDFLAGS: -lR ${SRCDIR}/libinterface.a
 	#
 	gcc -c -o interface.o cpp/interface.cpp -Iinclude/
-	ar cr go/libinterface.a interface.o
-	go build -buildmode=c-shared  -o rmq.so go/src/rmq/rmq.go
+	ar cr rmq/libinterface.a interface.o
+	GOPATH=${CURDIR}/.. GO15VENDOREXPERIMENT=1 go build -buildmode=c-shared  -o rmq.so rmq/rmq.go
 
-r-install-test:
+r:
 	cd ../..  &&  R CMD INSTALL rmq
 	echo "require(rmq); .Call('SayHello', 'gracey', PACKAGE = 'rmq')" | R --no-save --quiet
 
-c-test: go/rmq.go cpp/_example_main.c
+c: rmq/rmq.go cpp/_example_main.c
 	gcc -c -o interface.o cpp/interface.cpp -Iinclude/
-	ar cr go/libinterface.a interface.o
-	go build -buildmode=c-shared  -o example.so  go/src/rmq/rmq.go
+	ar cr rmq/libinterface.a interface.o
+	GOPATH=${CURDIR}/.. GO15VENDOREXPERIMENT=1 go build -buildmode=c-shared  -o example.so rmq/rmq.go
 	gcc -o _example_main cpp/_example_main.c example.so -I. -Iinclude/
 	./_example_main
 
 clean:
-	rm -f *~ rmq.h rmq.so _example_main go/libinterface.a  *.o example.so example.h cpp/*~ go/*~
+	find . -name '*~' | xargs rm -f
+	find . -name '*[.]so' | xargs rm -f
+	find . -name '*[.]o' | xargs rm -f
+	rm -f rmq.h rmq.so _example_main go/libinterface.a  *.o example.so example.h
 
+check:
+	cd ../.. && R CMD build rmq && R CMD check rmq_0.0.1.tar.gz
