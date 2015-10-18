@@ -1,4 +1,3 @@
-cur-dir   := $(shell pwd)
 
 all:	
 	# We have to build the C code definitions separately in a library now. Despite
