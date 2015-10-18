@@ -1,0 +1,17 @@
+# ./ncurses.pc
+
+prefix=/usr/local/opt/ncurses
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include/ncurses
+major_version=6
+version=6.0.20150808
+
+Name: ncurses
+Description: ncurses 6.0 library
+Version: ${version}
+Requires:
+Libs: -L${libdir} -lncurses
+Cflags: -I${includedir} -I${includedir}/..
+
+
