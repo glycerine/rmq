@@ -11,7 +11,7 @@ all:
 	#
 	# "R CMD build" buggily refuses to tar up our src/vendor/ contents for us, so we must resort to
 	# packing vendor.tar.gz and unpacking it when installing.
-	if test "$$R_INSTALL_PKG" = "rmq"; then echo "R_INSTALL_PKG = rmq found in env, unpacking vendor.tar.gz" >> note.untar; tar xf vendor.tar.gz; fi;
+	if test "$$R_INSTALL_PKG" = "rmq"; then echo "R_INSTALL_PKG = rmq found in env, unpacking vendor.tar.gz"; tar xf vendor.tar.gz; fi;
 	gcc -c -o interface.o cpp/interface.cpp -Iinclude/
 	ar cr rmq/libinterface.a interface.o
 	cd rmq && GOPATH=${CURDIR}/.. GO15VENDOREXPERIMENT=1 go build -buildmode=c-shared  -o ../rmq.so
