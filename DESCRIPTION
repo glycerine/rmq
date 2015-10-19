@@ -4,7 +4,7 @@ Version: 1.0.1
 Maintainer: Jason E. Aten <j.e.aten@gmail.com>
 Author: Jason E. Aten <j.e.aten@gmail.com>
 Description: Package rmq provides a message queuing and rpc facility.
-License: Apache 2.0.
+License: Apache 2.0. Individual components used include their own licenses, which may differ.
 SystemRequirements: golang 1.5.1 or later.
 URL: https://github.com/glycerine/rmq
 BugReports: https://github.com/glycerine/rmq/issues
