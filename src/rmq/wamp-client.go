@@ -1,14 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"log"
-	"os"
-	"strconv"
 
 	"github.com/glycerine/turnpike"
 )
+
+var myCallNum int64 = 0
 
 func client_main() {
 	turnpike.Debug()
@@ -21,25 +20,35 @@ func client_main() {
 		log.Fatal(err)
 	}
 
-	quit := make(chan bool)
-	c.Subscribe("alarm.ring", func([]interface{}, map[string]interface{}) {
-		fmt.Println("The alarm rang!")
-		c.Close()
-		quit <- true
-	})
-	fmt.Print("Enter the timer duration: ")
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	if err := scanner.Err(); err != nil {
-		log.Fatalln("reading stdin:", err)
-	}
-	text := scanner.Text()
-	if duration, err := strconv.Atoi(text); err != nil {
-		log.Fatalln("invalid integer input:", err)
+	/*
+
+		quit := make(chan bool)
+		c.Subscribe("alarm.ring", func([]interface{}, map[string]interface{}) {
+			fmt.Println("The alarm rang!")
+			c.Close()
+			quit <- true
+		})
+			fmt.Print("Enter the timer duration: ")
+			scanner := bufio.NewScanner(os.Stdin)
+			scanner.Scan()
+			if err := scanner.Err(); err != nil {
+				log.Fatalln("reading stdin:", err)
+			}
+			text := scanner.Text()
+			if duration, err := strconv.Atoi(text); err != nil {
+				log.Fatalln("invalid integer input:", err)
+			} else {
+	*/
+
+	myCallNum++
+
+	res, err := c.Call("alarm.set", []interface{}{myCallNum}, nil)
+	if err != nil {
+		fmt.Printf("cli: error setting alarm: '%s'. call result = '%s'.\n", err, res)
 	} else {
-		if _, err := c.Call("alarm.set", []interface{}{duration}, nil); err != nil {
-			log.Fatalln("error setting alarm:", err)
-		}
+		fmt.Printf("cli: successfully called alarm.set().\n")
 	}
-	<-quit
+
+	//	}
+	//<-quit
 }

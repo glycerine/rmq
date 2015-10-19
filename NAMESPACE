@@ -1,6 +1,7 @@
 useDynLib(rmq)
 
 export(
-       rmq
+       srv,
+       cli
        )
        

@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/glycerine/turnpike"
 )
@@ -25,15 +25,21 @@ func server_main() {
 	log.Fatal(server.ListenAndServe())
 }
 
+var myCount int64 = 0
+
 // takes one argument, the (integer) number of seconds to set the alarm for
 func alarmSet(args []interface{}, kwargs map[string]interface{}) (result *turnpike.CallResult) {
-	duration, ok := args[0].(float64)
+	fmt.Printf("args[0] is '%#v' of type %T\n", args[0], args[0]) // getting a float64. arg.
+	_, ok := args[0].(float64)
 	if !ok {
+		fmt.Printf("first arg to alarmSet() was not an float64.\n")
 		return &turnpike.CallResult{Err: turnpike.URI("rpc-example.invalid-argument")}
 	}
-	go func() {
-		time.Sleep(time.Duration(duration) * time.Second)
-		client.Publish("alarm.ring", nil, nil)
-	}()
-	return &turnpike.CallResult{Args: []interface{}{"hello"}}
+	/*	go func() {
+			time.Sleep(time.Duration(duration) * time.Second)
+			client.Publish("alarm.ring", nil, nil)
+		}()
+	*/
+	myCount++
+	return &turnpike.CallResult{Args: []interface{}{myCount}}
 }

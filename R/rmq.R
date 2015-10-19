@@ -4,6 +4,10 @@
 ##  http://www.apache.org/licenses/
 ###########################################################################
 
-rmq <- function() {
-    .Call("rmq", PACKAGE="rmq")
+srv <- function(x) {
+    .Call("Srv", x, PACKAGE="rmq")
+}
+
+cli <- function(x) {
+    .Call("Cli", x, PACKAGE="rmq")
 }

@@ -43,6 +43,11 @@ build:
 	tar --exclude dot[.]git -c  -f - vendor |gzip > vendor.tar.gz
 	cd ../.. && R CMD build rmq
 
+install:
+	tar --exclude dot[.]git -c  -f - vendor |gzip > vendor.tar.gz
+	cd ../.. && R CMD install rmq
+
+
 vtree:
 	tar --exclude dot[.]git -c -v -f - vendor |gzip > vendor.tar.gz
 

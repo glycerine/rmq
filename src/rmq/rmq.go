@@ -11,8 +11,8 @@ import "C"
 import "fmt"
 import "github.com/glycerine/especial"
 
-//export SayHello
-func SayHello(str_ C.SEXP) C.SEXP {
+//export Srv
+func Srv(str_ C.SEXP) C.SEXP {
 
 	if especial.Esp() != "Esp() called" {
 		panic("especial not linked!")
@@ -35,14 +35,22 @@ func SayHello(str_ C.SEXP) C.SEXP {
 	return C.R_NilValue
 }
 
-//export SayBye
-func SayBye(s string) C.SEXP {
+//export Cli
+func Cli(str_ C.SEXP) C.SEXP {
 
-	fmt.Printf("rmq says: SayBye() sees '%s'.\n", s)
+	if C.TYPEOF(str_) != C.STRSXP {
+		fmt.Printf("not a STRXSP! instead: %d, argument to rmq() must be a string to be decoded to its integer constant value in the rmq pkg.\n", C.TYPEOF(str_))
+		return C.R_NilValue
+	}
+
+	name := C.R_CHAR(C.STRING_ELT(str_, 0))
+	gname := C.GoString(name)
+
+	fmt.Printf("rmq says: SayBye() sees '%s'.\n", gname)
 
 	go client_main()
 
-	fmt.Printf("rmq says: after launching client_main().\n", s)
+	fmt.Printf("rmq says: after launching client_main().\n")
 
 	return C.R_NilValue
 }
