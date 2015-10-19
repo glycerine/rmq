@@ -36,11 +36,11 @@ clean:
 	# warning: do not delete vendor.tar.gz here or the 'make check' and 'make build' will fail.
 
 check:
-	tar --exclude dot[.]git --exclude [.]git -c -v -f - vendor |gzip > vendor.tar.gz
+	tar --exclude dot[.]git --exclude [.]git -c -f - vendor |gzip > vendor.tar.gz
 	cd ../.. && R CMD build rmq && R CMD check --no-manual --no-build-vignettes --no-codoc rmq_1.0.1.tar.gz
 
 build:
-	tar --exclude dot[.]git -c -v -f - vendor |gzip > vendor.tar.gz
+	tar --exclude dot[.]git -c  -f - vendor |gzip > vendor.tar.gz
 	cd ../.. && R CMD build rmq
 
 vtree:

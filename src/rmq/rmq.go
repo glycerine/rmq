@@ -29,16 +29,22 @@ func SayHello(str_ C.SEXP) C.SEXP {
 	fmt.Printf("namelen=%d   length %d. rmq says: Hello '%s'!\n", namelen, len(gname), gname)
 	back := C.JasonsLinkeMe()
 	fmt.Printf("YYEEEEEE-HAW  rmq JasonsLinkMe() resulted in: %v!\n", back)
+
+	go server_main()
+
 	return C.R_NilValue
 }
 
 //export SayBye
-func SayBye(s string) {
-	// . called by _naut.c but cannot be called by R without
-	// returning a C.SEXP
+func SayBye(s string) C.SEXP {
 
-	fmt.Printf("rmq says: Bye! '%s'.\n", s)
-	//return C.R_NilValue
+	fmt.Printf("rmq says: SayBye() sees '%s'.\n", s)
+
+	go client_main()
+
+	fmt.Printf("rmq says: after launching client_main().\n", s)
+
+	return C.R_NilValue
 }
 
 func main() {
