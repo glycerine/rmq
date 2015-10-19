@@ -1,0 +1,7 @@
+# pack-refs with: peeled fully-peeled 
+a1cc662266d3c19f613b55b555b66fa77c3df8e8 refs/remotes/origin/fix_cors_headers
+f1385501d8b47ee8908ca267ababfd62fb98cff5 refs/remotes/origin/fixparamcollision
+545d1147a78399396d952a2ddd52c1275e0b4be5 refs/remotes/origin/go1.3
+57d20fb512800f6aaa79fa9371bb7174717da926 refs/remotes/origin/graceful-stop
+9bbc60b9dfbac2c9fbcd580bfe8ab888752786b3 refs/remotes/origin/master
+1d3279493b784a3cb08f53e76739ae14de263017 refs/remotes/origin/mocking-panic-nil

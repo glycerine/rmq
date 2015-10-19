@@ -1,0 +1,8 @@
+gitcommit.go
+goq
+goq.test
+.goq
+*~
+bin/faulter
+.goq.run.script_*
+TAGS

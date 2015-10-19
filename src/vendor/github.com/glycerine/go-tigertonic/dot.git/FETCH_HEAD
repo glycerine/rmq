@@ -1,0 +1,6 @@
+9bbc60b9dfbac2c9fbcd580bfe8ab888752786b3		branch 'master' of https://github.com/glycerine/go-tigertonic
+a1cc662266d3c19f613b55b555b66fa77c3df8e8	not-for-merge	branch 'fix_cors_headers' of https://github.com/glycerine/go-tigertonic
+f1385501d8b47ee8908ca267ababfd62fb98cff5	not-for-merge	branch 'fixparamcollision' of https://github.com/glycerine/go-tigertonic
+545d1147a78399396d952a2ddd52c1275e0b4be5	not-for-merge	branch 'go1.3' of https://github.com/glycerine/go-tigertonic
+57d20fb512800f6aaa79fa9371bb7174717da926	not-for-merge	branch 'graceful-stop' of https://github.com/glycerine/go-tigertonic
+1d3279493b784a3cb08f53e76739ae14de263017	not-for-merge	branch 'mocking-panic-nil' of https://github.com/glycerine/go-tigertonic

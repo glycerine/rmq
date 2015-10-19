@@ -1,0 +1,7 @@
+# pack-refs with: peeled fully-peeled 
+4a1dcb3ba7e2fa494fbd628bf1ba0184c5fd98cc refs/remotes/origin/all-tests-mangos
+b902f7ca2dcc0734b8d79ced60259cfd0dd5a193 refs/remotes/origin/cnanomsg
+94c5d93fbd2ec8ae0127737a65001e2bb93e9d82 refs/remotes/origin/green
+cd6df398eb3006685297c56fbc200fa760566efb refs/remotes/origin/instrumented-nanomsg
+cec1ce18afaeb6c67fd68426bae21a620c5d0b97 refs/remotes/origin/mangos
+fb69c4095661a6548d921a1d2f0f99e3af04e4d3 refs/remotes/origin/master

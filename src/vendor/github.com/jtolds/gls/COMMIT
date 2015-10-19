@@ -1,0 +1,16 @@
+jaten@Jasons-MacBook-Pro:~/pkg/R-3.2.2/src/library/Recommended/rmq/src/vendor/github.com/jtolds/gls$ git log
+WARNING: terminal is not fully functional
+-  (press RETURN) 
+commit 9a4a02dbe491bef4bab3c24fd9f3087d6c4c6690
+Author: JT Olds <hello@jtolds.com>
+Date:   Wed Apr 1 00:43:43 2015 -0600
+
+    Update README.md
+
+commit 4d60873e140783c4f60a8797712e1cda9cfc1049
+Author: JT Olds <hello@jtolds.com>
+Date:   Wed Apr 1 00:40:48 2015 -0600
+
+    Update README.md
+
+....
