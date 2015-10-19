@@ -22,6 +22,8 @@ extern "C" {
   
   void ReportErrorToR_NoReturn(const char* msg);
 
+  void PrintToR(const char* msg);
+
 #ifdef __cplusplus
 }
 #endif

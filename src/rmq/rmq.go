@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"unsafe"
 
 	"github.com/gorilla/websocket"
 )
@@ -27,52 +28,83 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 		return C.R_NilValue
 	}
 
-	caddr := C.R_CHAR(C.STRING_ELT(addr_, 0))
-	addr := C.GoString(caddr)
-	fmt.Printf("ListenAndServe listening on address '%s'...\n", addr)
-
 	//msglen := 0
-	//var evalres C.SEXP
-	//var R_fcall, msg C.SEXP
 	if 0 == int(C.isFunction(handler_)) { // 0 is false
 		C.ReportErrorToR_NoReturn(C.CString("‘handler’ must be a function"))
 		return C.R_NilValue
 	}
 
-	if 0 == int(C.isEnvironment(rho_)) { // 0 is false
-		C.ReportErrorToR_NoReturn(C.CString("‘rho’ should be an environment"))
-		return C.R_NilValue
+	if rho_ != nil && rho_ != C.R_NilValue {
+		if 0 == int(C.isEnvironment(rho_)) { // 0 is false
+			C.ReportErrorToR_NoReturn(C.CString("‘rho’ should be an environment"))
+			return C.R_NilValue
+		}
 	}
 
-	/*
-	   	for {
-	       // blocking read
-	       //REprintf("nnListenAndServe: just prior to blocking waiting for msg\n");
-	       msglen = nn_recv(INTEGER(socket_)[0], &buf, NN_MSG, 0);
-	       if (msglen < 0) {
-	           error("error in nnRecv(): '%s'.\n", nn_strerror(nn_errno()));
-	           return R_NilValue;
-	       }
+	caddr := C.R_CHAR(C.STRING_ELT(addr_, 0))
+	addr := C.GoString(caddr)
+	fmt.Printf("ListenAndServe listening on address '%s'...\n", addr)
 
-	       PROTECT(msg = allocVector(RAWSXP,msglen));
-	       memcpy(RAW(msg),buf,msglen);
-	       if (nn_freemsg(buf) < 0) {
-	         error("bad buf: message pointer is invalid, in nnListenAndServer() loop.\n");
-	       }
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.Error(w, "Not found", 404)
+			return
+		}
+		if r.Method != "GET" {
+			http.Error(w, "Method not allowed, only GET allowed.", 405)
+			return
+		}
+		c, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			fmt.Print("websocket handler upgrade error:", err)
+			return
+		}
+		defer c.Close()
 
-	       // put msg into env that handler_ is called with.
-	       //defineVar(install("msg"), msg, rho_);
+		mt, message, err := c.ReadMessage()
+		if err != nil {
+			fmt.Println("read error: ", err)
+			return
+		}
 
-	       // evaluate
-	       //REprintf("nnListenAndServe: got msg, just prior to eval.\n");
-	       PROTECT(R_fcall = lang2(handler_, msg));
-	       PROTECT(evalres = eval(R_fcall, rho_));
-	       //REprintf("nnListenAndServe: evalres = %p.\n",evalres);
-	       //REprintf("nnListenAndServe: done with eval.\n");
-	       UNPROTECT(3);
-	      }
+		// make the call, and get a response
+		msglen := len(message)
+		rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(msglen))
+		C.Rf_protect(rawmsg)
+		C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&message[0]), C.size_t(msglen))
 
-	*/
+		// put msg into env that handler_ is called with.
+		C.defineVar(C.install(C.CString("msg")), rawmsg, rho_)
+
+		// evaluate
+		C.PrintToR(C.CString("nnListenAndServe: got msg, just prior to eval.\n"))
+		R_fcall := C.lang2(handler_, rawmsg)
+		C.Rf_protect(R_fcall)
+		evalres := C.eval(R_fcall, rho_)
+		C.Rf_protect(evalres)
+
+		C.PrintToR(C.CString("nnListenAndServe: done with eval.\n"))
+
+		if C.TYPEOF(evalres) != C.RAWSXP {
+			fmt.Printf("rats! handler result was not RAWSXP raw bytes!\n")
+		} else {
+
+			//fmt.Printf("recv: %s\n", message)
+			err = c.WriteMessage(mt, message)
+			if err != nil {
+				fmt.Println("write error: ", err)
+			}
+		}
+		C.Rf_unprotect(3)
+
+	} // end handler func
+
+	http.HandleFunc("/", handler)
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		fmt.Println("ListenAndServe: ", err)
+	}
+
 	return C.R_NilValue
 }
 

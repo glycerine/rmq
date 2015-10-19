@@ -59,6 +59,11 @@ void ReportErrorToR_NoReturn(const char* msg) {
   Rf_error(msg);
 }
 
+void PrintToR(const char* msg) {
+  REprintf(msg);
+}
+
+
 
 #ifdef __cplusplus
 }
