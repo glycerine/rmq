@@ -1,2 +1,0 @@
-autobahn>=0.10.5
-txaio>=1.0.3
