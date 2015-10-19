@@ -16,9 +16,11 @@ extern "C" {
 #endif
 
 
-SEXP rmq(SEXP name_);
-
+  SEXP rmq(SEXP name_);
+  
   int JasonsLinkeMe();
+  
+  void ReportErrorToR_NoReturn(const char* msg);
 
 #ifdef __cplusplus
 }

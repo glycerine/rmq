@@ -20,7 +20,6 @@ package main
  */
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
@@ -107,15 +106,15 @@ func NewRmqClient(transportFactory thrift.TTransportFactory, protocolFactory thr
 		fmt.Println("Error opening socket:", err)
 		return nil, err
 	}
-	if transport == nil {
+	if c.transport == nil {
 		return nil, fmt.Errorf("Error opening socket, got nil transport. Is server available?")
 	}
-	transport = transportFactory.GetTransport(transport)
-	if transport == nil {
+	c.transport = transportFactory.GetTransport(c.transport)
+	if c.transport == nil {
 		return nil, fmt.Errorf("Error from transportFactory.GetTransport(), got nil transport. Is server available?")
 	}
 
-	err = transport.Open()
+	err = c.transport.Open()
 	if err != nil {
 		return nil, err
 	}
@@ -124,11 +123,7 @@ func NewRmqClient(transportFactory thrift.TTransportFactory, protocolFactory thr
 }
 
 func (c *RmqClient) doClientCall() error {
-	return c.handleClient(tutorial.NewCalculatorClientFactory(c.transport, c.protocolFactory))
-}
-
-func main() {
-
+	return handleClient(tutorial.NewCalculatorClientFactory(c.transport, c.protocolFactory))
 }
 
 var myRmqClient *RmqClient
@@ -139,9 +134,7 @@ func StartClient() error {
 	framed := true        // flag.Bool("framed", false, "Use framed transport")
 	buffered := true      // flag.Bool("buffered", false, "Use buffered transport"), non-blocking server requires this.
 	addr := "localhost:9090"
-	secure := true // flag.Bool("secure", false, "Use tls secure transport")
-
-	flag.Parse()
+	secure := false // flag.Bool("secure", false, "Use tls secure transport")
 
 	var protocolFactory thrift.TProtocolFactory
 	switch protocol {

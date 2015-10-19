@@ -24,6 +24,11 @@ func (p *CalculatorHandler) Ping() (err error) {
 	return nil
 }
 
+func (p *CalculatorHandler) RmqCall(bin []byte) (r []byte, err error) {
+	fmt.Print("RmqCall() observed with this bin arg: '%x'\n", bin)
+	return []byte("RmqCall()ed!"), nil
+}
+
 func (p *CalculatorHandler) Add(num1 int32, num2 int32) (retval17 int32, err error) {
 	fmt.Print("add(", num1, ",", num2, ")\n")
 	return num1 + num2, nil
@@ -85,19 +90,29 @@ func (p *CalculatorHandler) Zip() (err error) {
 	return nil
 }
 
-func main() {
-
+type RmqServer struct {
+	transport        thrift.TTransport
+	transportFactory thrift.TTransportFactory
+	protocolFactory  thrift.TProtocolFactory
+	addr             string
+	secure           bool
 }
 
-func startServer() {
+func StartServer() error {
 	//	protocol := flag.String("P", "binary", "Specify the protocol (binary, compact, json, simplejson)")
 	//	framed := flag.Bool("framed", false, "Use framed transport")
 	//	buffered := flag.Bool("buffered", false, "Use buffered transport")
 	//	addr := flag.String("addr", "localhost:9090", "Address to listen to")
 	//	secure := flag.Bool("secure", false, "Use tls secure transport")
 
+	protocol := "compact" // flag.String("P", "binary", "Specify the protocol (binary, compact, json, simplejson)")
+	framed := true        // flag.Bool("framed", false, "Use framed transport")
+	buffered := true      // flag.Bool("buffered", false, "Use buffered transport"), non-blocking server requires this.
+	addr := "localhost:9090"
+	secure := false // flag.Bool("secure", false, "Use tls secure transport")
+
 	var protocolFactory thrift.TProtocolFactory
-	switch *protocol {
+	switch protocol {
 	case "compact":
 		protocolFactory = thrift.NewTCompactProtocolFactory()
 	case "simplejson":
@@ -112,20 +127,18 @@ func startServer() {
 	}
 
 	var transportFactory thrift.TTransportFactory
-	if *buffered {
+	if buffered {
 		transportFactory = thrift.NewTBufferedTransportFactory(8192)
 	} else {
 		transportFactory = thrift.NewTTransportFactory()
 	}
 
-	if *framed {
+	if framed {
 		transportFactory = thrift.NewTFramedTransportFactory(transportFactory)
 	}
 
 	// always run server here
-	if err := runServer(transportFactory, protocolFactory, *addr, *secure); err != nil {
-		fmt.Println("error running server:", err)
-	}
+	return runServer(transportFactory, protocolFactory, addr, secure)
 }
 
 func runServer(transportFactory thrift.TTransportFactory, protocolFactory thrift.TProtocolFactory, addr string, secure bool) error {

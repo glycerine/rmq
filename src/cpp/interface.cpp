@@ -55,6 +55,10 @@ SEXP rmq(SEXP str_) {
     return 7777;
   }
 
+void ReportErrorToR_NoReturn(const char* msg) {
+  Rf_error(msg);
+}
+
 
 #ifdef __cplusplus
 }
