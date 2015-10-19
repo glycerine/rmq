@@ -1,8 +1,2 @@
-0000000000000000000000000000000000000000 ddd1759ffcfa6c3eada3ccf2256e3fabeaabee37 Jason E. Aten <j.e.aten@gmail.com> 1444872581 -0700	commit (initial): for dev experimentz, branch v2 of github.com/jcelliott/turnpike at c7792e9fac4db78b251de07ecd4249d6e7880ce0 becomes master of github.com/glycerine/turnpike
-ddd1759ffcfa6c3eada3ccf2256e3fabeaabee37 3c9dd16277ffab8529a5aaaab0c90c78e91ff655 Jason E. Aten <j.e.aten@gmail.com> 1444872599 -0700	commit: for dev experimentz, branch v2 of github.com/jcelliott/turnpike at c7792e9fac4db78b251de07ecd4249d6e7880ce0 becomes master of github.com/glycerine/turnpike
-3c9dd16277ffab8529a5aaaab0c90c78e91ff655 3c9dd16277ffab8529a5aaaab0c90c78e91ff655 Jason E. Aten <j.e.aten@gmail.com> 1444872689 -0700	rebase -i (start): checkout master
-3c9dd16277ffab8529a5aaaab0c90c78e91ff655 3c9dd16277ffab8529a5aaaab0c90c78e91ff655 Jason E. Aten <j.e.aten@gmail.com> 1444872689 -0700	rebase -i (finish): returning to refs/heads/master
-3c9dd16277ffab8529a5aaaab0c90c78e91ff655 2fcc46c6df35da36296afb3fc21634134e0f24e1 Jason E. Aten <j.e.aten@gmail.com> 1444967747 -0700	commit: include OSX.INSTALL.NOTES.md
-2fcc46c6df35da36296afb3fc21634134e0f24e1 cf44d4615ce6029d535b08f6a846043e25f1f79a Jason E. Aten <j.e.aten@gmail.com> 1445005149 -0700	commit: store ncurses6-pc-files
-cf44d4615ce6029d535b08f6a846043e25f1f79a 8805d6bdaed514daca5711e83614e1eea63a875d Jason E. Aten <j.e.aten@gmail.com> 1445203485 -0700	commit: ignore
-8805d6bdaed514daca5711e83614e1eea63a875d 9c2d181aee3031a356e070f9be2f156722eae0db Jason E. Aten <j.e.aten@gmail.com> 1445203537 -0700	commit (merge): merge
+0000000000000000000000000000000000000000 c7792e9fac4db78b251de07ecd4249d6e7880ce0 Jason E. Aten <j.e.aten@gmail.com> 1445212544 -0700	clone: from https://github.com/glycerine/turnpike
+c7792e9fac4db78b251de07ecd4249d6e7880ce0 27470224ffffc388f1cfb539398c0d931cb2d8b5 Jason E. Aten <j.e.aten@gmail.com> 1445212544 -0700	checkout: moving from v2 to master

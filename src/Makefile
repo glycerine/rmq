@@ -14,7 +14,7 @@ all:
 	if test "$$R_INSTALL_PKG" = "rmq"; then echo "R_INSTALL_PKG = rmq found in env, unpacking vendor.tar.gz" >> note.untar; tar xf vendor.tar.gz; fi;
 	gcc -c -o interface.o cpp/interface.cpp -Iinclude/
 	ar cr rmq/libinterface.a interface.o
-	GOPATH=${CURDIR}/.. GO15VENDOREXPERIMENT=1 go build -buildmode=c-shared  -o rmq.so rmq/rmq.go
+	cd rmq && GOPATH=${CURDIR}/.. GO15VENDOREXPERIMENT=1 go build -buildmode=c-shared  -o ../rmq.so
 
 r:
 	cd ../..  &&  R CMD INSTALL rmq
@@ -36,7 +36,7 @@ clean:
 	# warning: do not delete vendor.tar.gz here or the 'make check' and 'make build' will fail.
 
 check:
-	tar --exclude dot[.]git -c -v -f - vendor |gzip > vendor.tar.gz
+	tar --exclude dot[.]git --exclude [.]git -c -v -f - vendor |gzip > vendor.tar.gz
 	cd ../.. && R CMD build rmq && R CMD check --no-manual --no-build-vignettes --no-codoc rmq_1.0.1.tar.gz
 
 build:
