@@ -85,6 +85,8 @@ func Srv(str_ C.SEXP) C.SEXP {
 	go StartServer()
 	//go server_main()
 
+	fmt.Printf("\n  after StartServer() launched.\n")
+
 	return C.R_NilValue
 }
 
@@ -103,7 +105,7 @@ func Cli(str_ C.SEXP) C.SEXP {
 
 	go StartClient()
 
-	fmt.Printf("rmq says: after launching client_main().\n")
+	fmt.Printf("rmq says: after launching StartClient().\n")
 
 	return C.R_NilValue
 }
