@@ -2,7 +2,8 @@ useDynLib(rmq)
 
 export(
        srv,
-       cli
+       cli,
+       callcount
        )
 
        

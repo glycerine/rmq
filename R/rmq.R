@@ -11,3 +11,7 @@ srv <- function(x) {
 cli <- function(x) {
     .Call("Cli", x, PACKAGE="rmq")
 }
+
+callcount <- function() {
+    .Call("Callcount", PACKAGE="rmq")
+}

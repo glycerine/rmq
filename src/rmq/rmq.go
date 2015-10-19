@@ -8,7 +8,16 @@ package main
 #include "interface.h"
 */
 import "C"
-import "fmt"
+
+import (
+	"fmt"
+	"net/http"
+	"net/url"
+
+	"github.com/gorilla/websocket"
+)
+
+var addr = "localhost:8081"
 
 //export ListenAndServe
 func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
@@ -76,16 +85,13 @@ func Srv(str_ C.SEXP) C.SEXP {
 	}
 
 	name := C.R_CHAR(C.STRING_ELT(str_, 0))
-	namelen := C.strlen(name)
 	gname := C.GoString(name)
-	fmt.Printf("namelen=%d   length %d. rmq says: Hello '%s'!\n", namelen, len(gname), gname)
-	back := C.JasonsLinkeMe()
-	fmt.Printf("YYEEEEEE-HAW  rmq JasonsLinkMe() resulted in: %v!\n", back)
+	fmt.Printf("rmq says: Hello '%s'!\n", gname)
 
-	go StartServer()
-	//go server_main()
+	//go StartServer()
+	go server_main()
 
-	fmt.Printf("\n  after StartServer() launched.\n")
+	fmt.Printf("\n  after gorilla webserver on '%s' launched.\n", addr)
 
 	return C.R_NilValue
 }
@@ -99,18 +105,100 @@ func Cli(str_ C.SEXP) C.SEXP {
 	}
 
 	name := C.R_CHAR(C.STRING_ELT(str_, 0))
-	gname := C.GoString(name)
+	msg := C.GoString(name)
 
-	fmt.Printf("rmq says: SayBye() sees '%s'.\n", gname)
+	//fmt.Printf("rmq says: client sees '%s'.\n", msg)
 
-	go StartClient()
+	client_main([]byte(msg))
 
-	fmt.Printf("rmq says: after launching StartClient().\n")
+	//fmt.Printf("rmq says: after client_main().\n")
 
+	return C.R_NilValue
+}
+
+//export Callcount
+func Callcount() C.SEXP {
+	fmt.Printf("count = %d\n", count)
 	return C.R_NilValue
 }
 
 func main() {
 	// We need the main function to make possible
 	// CGO compiler to compile the package as C shared library
+}
+
+var c *websocket.Conn
+var count int
+
+func client_main(msg []byte) {
+
+	var err error
+	if c == nil {
+		u := url.URL{Scheme: "ws", Host: addr, Path: "/"}
+		fmt.Printf("connecting to %s", u.String())
+
+		c, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
+		if err != nil {
+			fmt.Println("dial:", err)
+			c = nil
+			return
+		}
+	}
+
+	err = c.WriteMessage(websocket.TextMessage, msg)
+	if err != nil {
+		fmt.Println("write err:", err)
+	}
+
+	_, message, err := c.ReadMessage()
+	if err != nil {
+		fmt.Println("read err:", err)
+	}
+	if false {
+		fmt.Printf("recv: %s\n", message)
+	}
+	count++
+}
+
+// server
+
+var upgrader = websocket.Upgrader{} // use default options
+
+func echo(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.Error(w, "Not found", 404)
+		return
+	}
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed, only GET allowed.", 405)
+		return
+	}
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Print("upgrade:", err)
+		return
+	}
+	defer c.Close()
+	for {
+		mt, message, err := c.ReadMessage()
+		if err != nil {
+			fmt.Println("read error: ", err)
+			break
+		}
+		//fmt.Printf("recv: %s\n", message)
+		err = c.WriteMessage(mt, message)
+		if err != nil {
+			fmt.Println("write error: ", err)
+			break
+		}
+	}
+}
+
+func server_main() {
+
+	http.HandleFunc("/", echo)
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		fmt.Println("ListenAndServe: ", err)
+	}
 }
