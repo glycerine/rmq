@@ -39,6 +39,9 @@ type Calculator interface {
 	// a request and does not listen for any response at all. Oneway methods
 	// must be void.
 	Zip() (err error)
+	// Parameters:
+	//  - Bin
+	RmqCall(bin []byte) (r []byte, err error)
 }
 
 //Ahh, now onto the cool part, defining a service. Services just need a name
@@ -323,17 +326,99 @@ func (p *CalculatorClient) sendZip() (err error) {
 	return oprot.Flush()
 }
 
+// Parameters:
+//  - Bin
+func (p *CalculatorClient) RmqCall(bin []byte) (r []byte, err error) {
+	if err = p.sendRmqCall(bin); err != nil {
+		return
+	}
+	return p.recvRmqCall()
+}
+
+func (p *CalculatorClient) sendRmqCall(bin []byte) (err error) {
+	oprot := p.OutputProtocol
+	if oprot == nil {
+		oprot = p.ProtocolFactory.GetProtocol(p.Transport)
+		p.OutputProtocol = oprot
+	}
+	p.SeqId++
+	if err = oprot.WriteMessageBegin("RmqCall", thrift.CALL, p.SeqId); err != nil {
+		return
+	}
+	args := CalculatorRmqCallArgs{
+		Bin: bin,
+	}
+	if err = args.Write(oprot); err != nil {
+		return
+	}
+	if err = oprot.WriteMessageEnd(); err != nil {
+		return
+	}
+	return oprot.Flush()
+}
+
+func (p *CalculatorClient) recvRmqCall() (value []byte, err error) {
+	iprot := p.InputProtocol
+	if iprot == nil {
+		iprot = p.ProtocolFactory.GetProtocol(p.Transport)
+		p.InputProtocol = iprot
+	}
+	method, mTypeId, seqId, err := iprot.ReadMessageBegin()
+	if err != nil {
+		return
+	}
+	if method != "RmqCall" {
+		err = thrift.NewTApplicationException(thrift.WRONG_METHOD_NAME, "RmqCall failed: wrong method name")
+		return
+	}
+	if p.SeqId != seqId {
+		err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "RmqCall failed: out of sequence response")
+		return
+	}
+	if mTypeId == thrift.EXCEPTION {
+		error6 := thrift.NewTApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
+		var error7 error
+		error7, err = error6.Read(iprot)
+		if err != nil {
+			return
+		}
+		if err = iprot.ReadMessageEnd(); err != nil {
+			return
+		}
+		err = error7
+		return
+	}
+	if mTypeId != thrift.REPLY {
+		err = thrift.NewTApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "RmqCall failed: invalid message type")
+		return
+	}
+	result := CalculatorRmqCallResult{}
+	if err = result.Read(iprot); err != nil {
+		return
+	}
+	if err = iprot.ReadMessageEnd(); err != nil {
+		return
+	}
+	if result.Ouch != nil {
+		err = result.Ouch
+		return
+	}
+	value = result.GetSuccess()
+	return
+}
+
 type CalculatorProcessor struct {
 	*shared.SharedServiceProcessor
 }
 
 func NewCalculatorProcessor(handler Calculator) *CalculatorProcessor {
-	self6 := &CalculatorProcessor{shared.NewSharedServiceProcessor(handler)}
-	self6.AddToProcessorMap("ping", &calculatorProcessorPing{handler: handler})
-	self6.AddToProcessorMap("add", &calculatorProcessorAdd{handler: handler})
-	self6.AddToProcessorMap("calculate", &calculatorProcessorCalculate{handler: handler})
-	self6.AddToProcessorMap("zip", &calculatorProcessorZip{handler: handler})
-	return self6
+	self8 := &CalculatorProcessor{shared.NewSharedServiceProcessor(handler)}
+	self8.AddToProcessorMap("ping", &calculatorProcessorPing{handler: handler})
+	self8.AddToProcessorMap("add", &calculatorProcessorAdd{handler: handler})
+	self8.AddToProcessorMap("calculate", &calculatorProcessorCalculate{handler: handler})
+	self8.AddToProcessorMap("zip", &calculatorProcessorZip{handler: handler})
+	self8.AddToProcessorMap("RmqCall", &calculatorProcessorRmqCall{handler: handler})
+	return self8
 }
 
 type calculatorProcessorPing struct {
@@ -499,6 +584,59 @@ func (p *calculatorProcessorZip) Process(seqId int32, iprot, oprot thrift.TProto
 		return true, err2
 	}
 	return true, nil
+}
+
+type calculatorProcessorRmqCall struct {
+	handler Calculator
+}
+
+func (p *calculatorProcessorRmqCall) Process(seqId int32, iprot, oprot thrift.TProtocol) (success bool, err thrift.TException) {
+	args := CalculatorRmqCallArgs{}
+	if err = args.Read(iprot); err != nil {
+		iprot.ReadMessageEnd()
+		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+		oprot.WriteMessageBegin("RmqCall", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush()
+		return false, err
+	}
+
+	iprot.ReadMessageEnd()
+	result := CalculatorRmqCallResult{}
+	var retval []byte
+	var err2 error
+	if retval, err2 = p.handler.RmqCall(args.Bin); err2 != nil {
+		switch v := err2.(type) {
+		case *RmqError:
+			result.Ouch = v
+		default:
+			x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing RmqCall: "+err2.Error())
+			oprot.WriteMessageBegin("RmqCall", thrift.EXCEPTION, seqId)
+			x.Write(oprot)
+			oprot.WriteMessageEnd()
+			oprot.Flush()
+			return true, err2
+		}
+	} else {
+		result.Success = retval
+	}
+	if err2 = oprot.WriteMessageBegin("RmqCall", thrift.REPLY, seqId); err2 != nil {
+		err = err2
+	}
+	if err2 = result.Write(oprot); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err2 = oprot.Flush(); err == nil && err2 != nil {
+		err = err2
+	}
+	if err != nil {
+		return
+	}
+	return true, err
 }
 
 // HELPER FUNCTIONS AND STRUCTURES
@@ -1169,4 +1307,239 @@ func (p *CalculatorZipArgs) String() string {
 		return "<nil>"
 	}
 	return fmt.Sprintf("CalculatorZipArgs(%+v)", *p)
+}
+
+// Attributes:
+//  - Bin
+type CalculatorRmqCallArgs struct {
+	Bin []byte `thrift:"bin,1" db:"bin" json:"bin"`
+}
+
+func NewCalculatorRmqCallArgs() *CalculatorRmqCallArgs {
+	return &CalculatorRmqCallArgs{}
+}
+
+func (p *CalculatorRmqCallArgs) GetBin() []byte {
+	return p.Bin
+}
+func (p *CalculatorRmqCallArgs) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		switch fieldId {
+		case 1:
+			if err := p.readField1(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+	}
+	return nil
+}
+
+func (p *CalculatorRmqCallArgs) readField1(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadBinary(); err != nil {
+		return thrift.PrependError("error reading field 1: ", err)
+	} else {
+		p.Bin = v
+	}
+	return nil
+}
+
+func (p *CalculatorRmqCallArgs) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("RmqCall_args"); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+	}
+	if err := p.writeField1(oprot); err != nil {
+		return err
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return thrift.PrependError("write field stop error: ", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return thrift.PrependError("write struct stop error: ", err)
+	}
+	return nil
+}
+
+func (p *CalculatorRmqCallArgs) writeField1(oprot thrift.TProtocol) (err error) {
+	if err := oprot.WriteFieldBegin("bin", thrift.STRING, 1); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:bin: ", p), err)
+	}
+	if err := oprot.WriteBinary(p.Bin); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T.bin (1) field write error: ", p), err)
+	}
+	if err := oprot.WriteFieldEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write field end error 1:bin: ", p), err)
+	}
+	return err
+}
+
+func (p *CalculatorRmqCallArgs) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("CalculatorRmqCallArgs(%+v)", *p)
+}
+
+// Attributes:
+//  - Success
+//  - Ouch
+type CalculatorRmqCallResult struct {
+	Success []byte    `thrift:"success,0" db:"success" json:"success,omitempty"`
+	Ouch    *RmqError `thrift:"ouch,1" db:"ouch" json:"ouch,omitempty"`
+}
+
+func NewCalculatorRmqCallResult() *CalculatorRmqCallResult {
+	return &CalculatorRmqCallResult{}
+}
+
+var CalculatorRmqCallResult_Success_DEFAULT []byte
+
+func (p *CalculatorRmqCallResult) GetSuccess() []byte {
+	return p.Success
+}
+
+var CalculatorRmqCallResult_Ouch_DEFAULT *RmqError
+
+func (p *CalculatorRmqCallResult) GetOuch() *RmqError {
+	if !p.IsSetOuch() {
+		return CalculatorRmqCallResult_Ouch_DEFAULT
+	}
+	return p.Ouch
+}
+func (p *CalculatorRmqCallResult) IsSetSuccess() bool {
+	return p.Success != nil
+}
+
+func (p *CalculatorRmqCallResult) IsSetOuch() bool {
+	return p.Ouch != nil
+}
+
+func (p *CalculatorRmqCallResult) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		switch fieldId {
+		case 0:
+			if err := p.readField0(iprot); err != nil {
+				return err
+			}
+		case 1:
+			if err := p.readField1(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+	}
+	return nil
+}
+
+func (p *CalculatorRmqCallResult) readField0(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadBinary(); err != nil {
+		return thrift.PrependError("error reading field 0: ", err)
+	} else {
+		p.Success = v
+	}
+	return nil
+}
+
+func (p *CalculatorRmqCallResult) readField1(iprot thrift.TProtocol) error {
+	p.Ouch = &RmqError{}
+	if err := p.Ouch.Read(iprot); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T error reading struct: ", p.Ouch), err)
+	}
+	return nil
+}
+
+func (p *CalculatorRmqCallResult) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("RmqCall_result"); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+	}
+	if err := p.writeField0(oprot); err != nil {
+		return err
+	}
+	if err := p.writeField1(oprot); err != nil {
+		return err
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return thrift.PrependError("write field stop error: ", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return thrift.PrependError("write struct stop error: ", err)
+	}
+	return nil
+}
+
+func (p *CalculatorRmqCallResult) writeField0(oprot thrift.TProtocol) (err error) {
+	if p.IsSetSuccess() {
+		if err := oprot.WriteFieldBegin("success", thrift.STRING, 0); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 0:success: ", p), err)
+		}
+		if err := oprot.WriteBinary(p.Success); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T.success (0) field write error: ", p), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 0:success: ", p), err)
+		}
+	}
+	return err
+}
+
+func (p *CalculatorRmqCallResult) writeField1(oprot thrift.TProtocol) (err error) {
+	if p.IsSetOuch() {
+		if err := oprot.WriteFieldBegin("ouch", thrift.STRUCT, 1); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:ouch: ", p), err)
+		}
+		if err := p.Ouch.Write(oprot); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T error writing struct: ", p.Ouch), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 1:ouch: ", p), err)
+		}
+	}
+	return err
+}
+
+func (p *CalculatorRmqCallResult) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("CalculatorRmqCallResult(%+v)", *p)
 }

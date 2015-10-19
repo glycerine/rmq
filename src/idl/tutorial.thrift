@@ -115,6 +115,11 @@ exception InvalidOperation {
   2: string why
 }
 
+exception RmqError {
+  1: optional i32 num,
+  2: optional string why
+}
+
 /**
  * Ahh, now onto the cool part, defining a service. Services just need a name
  * and can optionally inherit from another service using the extends keyword.
@@ -139,7 +144,9 @@ service Calculator extends shared.SharedService {
     * a request and does not listen for any response at all. Oneway methods
     * must be void.
     */
-   oneway void zip()
+   oneway void zip(),
+
+   binary RmqCall(1: binary bin) throws (1:RmqError ouch)
 
 }
 

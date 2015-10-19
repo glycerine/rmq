@@ -24,6 +24,7 @@ func Usage() {
 	fmt.Fprintln(os.Stderr, "  i32 add(i32 num1, i32 num2)")
 	fmt.Fprintln(os.Stderr, "  i32 calculate(i32 logid, Work w)")
 	fmt.Fprintln(os.Stderr, "  void zip()")
+	fmt.Fprintln(os.Stderr, "  string RmqCall(string bin)")
 	fmt.Fprintln(os.Stderr, "  SharedStruct getStruct(i32 key)")
 	fmt.Fprintln(os.Stderr)
 	os.Exit(0)
@@ -132,15 +133,15 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Add requires 2 args")
 			flag.Usage()
 		}
-		tmp0, err7 := (strconv.Atoi(flag.Arg(1)))
-		if err7 != nil {
+		tmp0, err9 := (strconv.Atoi(flag.Arg(1)))
+		if err9 != nil {
 			Usage()
 			return
 		}
 		argvalue0 := int32(tmp0)
 		value0 := argvalue0
-		tmp1, err8 := (strconv.Atoi(flag.Arg(2)))
-		if err8 != nil {
+		tmp1, err10 := (strconv.Atoi(flag.Arg(2)))
+		if err10 != nil {
 			Usage()
 			return
 		}
@@ -154,26 +155,26 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Calculate requires 2 args")
 			flag.Usage()
 		}
-		tmp0, err9 := (strconv.Atoi(flag.Arg(1)))
-		if err9 != nil {
+		tmp0, err11 := (strconv.Atoi(flag.Arg(1)))
+		if err11 != nil {
 			Usage()
 			return
 		}
 		argvalue0 := int32(tmp0)
 		value0 := argvalue0
-		arg10 := flag.Arg(2)
-		mbTrans11 := thrift.NewTMemoryBufferLen(len(arg10))
-		defer mbTrans11.Close()
-		_, err12 := mbTrans11.WriteString(arg10)
-		if err12 != nil {
+		arg12 := flag.Arg(2)
+		mbTrans13 := thrift.NewTMemoryBufferLen(len(arg12))
+		defer mbTrans13.Close()
+		_, err14 := mbTrans13.WriteString(arg12)
+		if err14 != nil {
 			Usage()
 			return
 		}
-		factory13 := thrift.NewTSimpleJSONProtocolFactory()
-		jsProt14 := factory13.GetProtocol(mbTrans11)
+		factory15 := thrift.NewTSimpleJSONProtocolFactory()
+		jsProt16 := factory15.GetProtocol(mbTrans13)
 		argvalue1 := tutorial.NewWork()
-		err15 := argvalue1.Read(jsProt14)
-		if err15 != nil {
+		err17 := argvalue1.Read(jsProt16)
+		if err17 != nil {
 			Usage()
 			return
 		}
@@ -189,13 +190,23 @@ func main() {
 		fmt.Print(client.Zip())
 		fmt.Print("\n")
 		break
+	case "RmqCall":
+		if flag.NArg()-1 != 1 {
+			fmt.Fprintln(os.Stderr, "RmqCall requires 1 args")
+			flag.Usage()
+		}
+		argvalue0 := []byte(flag.Arg(1))
+		value0 := argvalue0
+		fmt.Print(client.RmqCall(value0))
+		fmt.Print("\n")
+		break
 	case "getStruct":
 		if flag.NArg()-1 != 1 {
 			fmt.Fprintln(os.Stderr, "GetStruct requires 1 args")
 			flag.Usage()
 		}
-		tmp0, err16 := (strconv.Atoi(flag.Arg(1)))
-		if err16 != nil {
+		tmp0, err19 := (strconv.Atoi(flag.Arg(1)))
+		if err19 != nil {
 			Usage()
 			return
 		}

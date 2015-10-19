@@ -440,3 +440,155 @@ func (p *InvalidOperation) String() string {
 func (p *InvalidOperation) Error() string {
 	return p.String()
 }
+
+// Attributes:
+//  - Num
+//  - Why
+type RmqError struct {
+	Num *int32  `thrift:"num,1" db:"num" json:"num,omitempty"`
+	Why *string `thrift:"why,2" db:"why" json:"why,omitempty"`
+}
+
+func NewRmqError() *RmqError {
+	return &RmqError{}
+}
+
+var RmqError_Num_DEFAULT int32
+
+func (p *RmqError) GetNum() int32 {
+	if !p.IsSetNum() {
+		return RmqError_Num_DEFAULT
+	}
+	return *p.Num
+}
+
+var RmqError_Why_DEFAULT string
+
+func (p *RmqError) GetWhy() string {
+	if !p.IsSetWhy() {
+		return RmqError_Why_DEFAULT
+	}
+	return *p.Why
+}
+func (p *RmqError) IsSetNum() bool {
+	return p.Num != nil
+}
+
+func (p *RmqError) IsSetWhy() bool {
+	return p.Why != nil
+}
+
+func (p *RmqError) Read(iprot thrift.TProtocol) error {
+	if _, err := iprot.ReadStructBegin(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read error: ", p), err)
+	}
+
+	for {
+		_, fieldTypeId, fieldId, err := iprot.ReadFieldBegin()
+		if err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T field %d read error: ", p, fieldId), err)
+		}
+		if fieldTypeId == thrift.STOP {
+			break
+		}
+		switch fieldId {
+		case 1:
+			if err := p.readField1(iprot); err != nil {
+				return err
+			}
+		case 2:
+			if err := p.readField2(iprot); err != nil {
+				return err
+			}
+		default:
+			if err := iprot.Skip(fieldTypeId); err != nil {
+				return err
+			}
+		}
+		if err := iprot.ReadFieldEnd(); err != nil {
+			return err
+		}
+	}
+	if err := iprot.ReadStructEnd(); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T read struct end error: ", p), err)
+	}
+	return nil
+}
+
+func (p *RmqError) readField1(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadI32(); err != nil {
+		return thrift.PrependError("error reading field 1: ", err)
+	} else {
+		p.Num = &v
+	}
+	return nil
+}
+
+func (p *RmqError) readField2(iprot thrift.TProtocol) error {
+	if v, err := iprot.ReadString(); err != nil {
+		return thrift.PrependError("error reading field 2: ", err)
+	} else {
+		p.Why = &v
+	}
+	return nil
+}
+
+func (p *RmqError) Write(oprot thrift.TProtocol) error {
+	if err := oprot.WriteStructBegin("RmqError"); err != nil {
+		return thrift.PrependError(fmt.Sprintf("%T write struct begin error: ", p), err)
+	}
+	if err := p.writeField1(oprot); err != nil {
+		return err
+	}
+	if err := p.writeField2(oprot); err != nil {
+		return err
+	}
+	if err := oprot.WriteFieldStop(); err != nil {
+		return thrift.PrependError("write field stop error: ", err)
+	}
+	if err := oprot.WriteStructEnd(); err != nil {
+		return thrift.PrependError("write struct stop error: ", err)
+	}
+	return nil
+}
+
+func (p *RmqError) writeField1(oprot thrift.TProtocol) (err error) {
+	if p.IsSetNum() {
+		if err := oprot.WriteFieldBegin("num", thrift.I32, 1); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 1:num: ", p), err)
+		}
+		if err := oprot.WriteI32(int32(*p.Num)); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T.num (1) field write error: ", p), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 1:num: ", p), err)
+		}
+	}
+	return err
+}
+
+func (p *RmqError) writeField2(oprot thrift.TProtocol) (err error) {
+	if p.IsSetWhy() {
+		if err := oprot.WriteFieldBegin("why", thrift.STRING, 2); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field begin error 2:why: ", p), err)
+		}
+		if err := oprot.WriteString(string(*p.Why)); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T.why (2) field write error: ", p), err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return thrift.PrependError(fmt.Sprintf("%T write field end error 2:why: ", p), err)
+		}
+	}
+	return err
+}
+
+func (p *RmqError) String() string {
+	if p == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("RmqError(%+v)", *p)
+}
+
+func (p *RmqError) Error() string {
+	return p.String()
+}
