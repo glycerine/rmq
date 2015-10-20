@@ -23,3 +23,7 @@ listenAndServe <- function(addr, handler) {
 to.msgpack <- function(x) {
   .Call("ToMsgpack", x)
 }
+
+from.msgpack <- function(x) {
+  .Call("FromMsgpack", x)
+}

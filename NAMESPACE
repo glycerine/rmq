@@ -5,7 +5,6 @@ export(
        cli,
        callcount,
        listenAndServe,
-       to.msgpack
+       to.msgpack,
+       from.msgpack
        )
-
-       

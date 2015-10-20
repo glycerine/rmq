@@ -585,7 +585,9 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 	VPrintf("decoded value: %v\n", r)
 
 	s := decodeHelper(r, 0)
-	C.Rf_unprotect(1) // unprotect s before returning it
+	if s != C.R_NilValue {
+		C.Rf_unprotect(1) // unprotect s before returning it
+	}
 	return s
 }
 
@@ -748,11 +750,34 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&val[0]), C.size_t(len(val)))
 		return rawmsg
 
+	case nil:
+		return C.R_NilValue
+
 	default:
-		fmt.Printf("unknown type in type switch, val = %#v\n", val)
+		fmt.Printf("unknown type in type switch, val = %#v.  type = %T.\n", val, val)
 	}
 
 	return s
+}
+
+//export FromMsgpack
+func FromMsgpack(s C.SEXP) C.SEXP {
+	// starting from within R, we convert a raw byte vector into R structures.
+
+	// s must be a RAWSXP
+	if C.TYPEOF(s) != C.RAWSXP {
+		C.ReportErrorToR_NoReturn(C.CString("from.msgpack(x) requires x be a RAW vector of bytes."))
+	}
+
+	n := int(C.Rf_xlength(s))
+	if n == 0 {
+		return C.R_NilValue
+	}
+	bytes := make([]byte, n)
+
+	C.memcpy(unsafe.Pointer(&bytes[0]), unsafe.Pointer(C.RAW(s)), C.size_t(n))
+
+	return decodeMsgpackToR(bytes)
 }
 
 //export ToMsgpack
