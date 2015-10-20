@@ -24,6 +24,8 @@ extern "C" {
 
   void PrintToR(const char* msg);
 
+  void SetTypeToLANGSXP(SEXP* sexp);
+  
 #ifdef __cplusplus
 }
 #endif

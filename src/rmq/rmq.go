@@ -9,6 +9,8 @@ package main
 */
 import "C"
 
+//go:generate msgp
+
 import (
 	"fmt"
 	"net/http"
@@ -18,7 +20,20 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type Subload struct {
+	A string
+	B int
+}
+
+type Payload struct {
+	Sub Subload
+	D   string
+	E   int
+}
+
 var addr = "localhost:8081"
+
+var R_serialize_fun C.SEXP
 
 //export ListenAndServe
 func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
@@ -45,7 +60,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	addr := C.GoString(caddr)
 	fmt.Printf("ListenAndServe listening on address '%s'...\n", addr)
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	webSockHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.Error(w, "Not found", 404)
 			return
@@ -76,13 +91,32 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 		// put msg into env that handler_ is called with.
 		C.defineVar(C.install(C.CString("msg")), rawmsg, rho_)
 
+		R_serialize_fun = C.findVar(C.install(C.CString("serialize")), C.R_GlobalEnv)
+
 		// evaluate
-		C.PrintToR(C.CString("nnListenAndServe: got msg, just prior to eval.\n"))
-		R_fcall := C.lang2(handler_, rawmsg)
+		C.PrintToR(C.CString("listenAndServe: stuffed msg into env rho_.\n"))
+		//R_fcall := C.lang3(handler_, rawmsg, C.R_NilValue)
+		R_fcall := C.lang3(R_serialize_fun, rawmsg, C.R_NilValue)
 		C.Rf_protect(R_fcall)
+		C.PrintToR(C.CString("listenAndServe: got msg, just prior to eval.\n"))
 		evalres := C.eval(R_fcall, rho_)
 		C.Rf_protect(evalres)
 
+		C.PrintToR(C.CString("listenAndServe: after eval.\n"))
+		/*
+			var s, t C.SEXP
+			s = C.allocList(3)
+			t = s
+			C.Rf_protect(t)
+			C.SetTypeToLANGSXP(&s)
+			//C.SETCAR(t, R_fcall)
+			C.SETCAR(t, handler_)
+			t = C.CDR(t)
+			C.SETCAR(t, rawmsg)
+
+			evalres := C.eval(s, rho_)
+			C.Rf_protect(evalres)
+		*/
 		C.PrintToR(C.CString("nnListenAndServe: done with eval.\n"))
 
 		if C.TYPEOF(evalres) != C.RAWSXP {
@@ -99,7 +133,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
 	} // end handler func
 
-	http.HandleFunc("/", handler)
+	http.HandleFunc("/", webSockHandler)
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
 		fmt.Println("ListenAndServe: ", err)
@@ -141,10 +175,22 @@ func Cli(str_ C.SEXP) C.SEXP {
 
 	//fmt.Printf("rmq says: client sees '%s'.\n", msg)
 
-	client_main([]byte(msg))
+	reply := client_main([]byte(msg))
 
-	//fmt.Printf("rmq says: after client_main().\n")
+	fmt.Printf("rmq says: after client_main().\n")
 
+	if len(reply) == 0 {
+		return C.R_NilValue
+	}
+
+	if len(reply) > 0 {
+		rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(len(reply)))
+		C.Rf_protect(rawmsg)
+		C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&reply[0]), C.size_t(len(reply)))
+		C.Rf_unprotect(1)
+
+		return rawmsg
+	}
 	return C.R_NilValue
 }
 
@@ -162,7 +208,7 @@ func main() {
 var c *websocket.Conn
 var count int
 
-func client_main(msg []byte) {
+func client_main(msg []byte) []byte {
 
 	var err error
 	if c == nil {
@@ -173,7 +219,7 @@ func client_main(msg []byte) {
 		if err != nil {
 			fmt.Println("dial:", err)
 			c = nil
-			return
+			return []byte{}
 		}
 	}
 
@@ -190,11 +236,16 @@ func client_main(msg []byte) {
 		fmt.Printf("recv: %s\n", message)
 	}
 	count++
+
+	return message
 }
 
 // server
 
 var upgrader = websocket.Upgrader{} // use default options
+
+var data Payload
+var dataBytes []byte
 
 func echo(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -217,8 +268,10 @@ func echo(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("read error: ", err)
 			break
 		}
-		//fmt.Printf("recv: %s\n", message)
-		err = c.WriteMessage(mt, message)
+		if false {
+			fmt.Printf("recv: %s\n", message)
+		}
+		err = c.WriteMessage(mt, dataBytes)
 		if err != nil {
 			fmt.Println("write error: ", err)
 			break
@@ -228,9 +281,30 @@ func echo(w http.ResponseWriter, r *http.Request) {
 
 func server_main() {
 
+	data = Payload{
+		Sub: Subload{
+			A: "hi",
+			B: 43,
+		},
+		D: "hello",
+		E: 32,
+	}
+
+	var err error
+	dataBytes, err = data.MarshalMsg(nil)
+	panicOn(err)
+
+	fmt.Printf("data = %#v\n", data)
+
 	http.HandleFunc("/", echo)
-	err := http.ListenAndServe(addr, nil)
+	err = http.ListenAndServe(addr, nil)
 	if err != nil {
 		fmt.Println("ListenAndServe: ", err)
+	}
+}
+
+func panicOn(err error) {
+	if err != nil {
+		panic(err)
 	}
 }

@@ -55,14 +55,17 @@ SEXP rmq(SEXP str_) {
     return 7777;
   }
 
-void ReportErrorToR_NoReturn(const char* msg) {
-  Rf_error(msg);
-}
-
-void PrintToR(const char* msg) {
-  REprintf(msg);
-}
-
+  void ReportErrorToR_NoReturn(const char* msg) {
+    Rf_error(msg);
+  }
+  
+  void PrintToR(const char* msg) {
+    REprintf(msg);
+  }
+  
+  void SetTypeToLANGSXP(SEXP* sexp) {
+    SET_TYPEOF(*sexp, LANGSXP);
+  }
 
 
 #ifdef __cplusplus

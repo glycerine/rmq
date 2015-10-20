@@ -16,6 +16,6 @@ callcount <- function() {
     .Call("Callcount", PACKAGE="rmq")
 }
 
-listenAndServe <- function(addr, handler, rho) {
-  invisible(.Call("ListenAndServe", addr, handler, rho))
+listenAndServe <- function(addr, handler) {
+  invisible(.Call("ListenAndServe", addr, handler, new.env()))
 }
