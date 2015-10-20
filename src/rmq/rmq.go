@@ -579,6 +579,10 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 	return s
 }
 
+// this is suggested: go:nosplit, because we are doing unsafe pointer arithmetic
+// http://stackoverflow.com/questions/32700999/pointer-arithmetic-in-go
+
+//go:nosplit
 func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
 	fmt.Printf("decodeHelper() at depth %d, decoded type is %T\n", depth, r)
@@ -601,7 +605,45 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
 	case []interface{}:
 		fmt.Printf("depth %d found []interface{} case: val = %#v\n", depth, val)
-		intslice := C.allocVector(C.VECSXP, C.R_xlen_t(len(val)))
+
+		var sxpTy C.SEXPTYPE = C.VECSXP
+		if len(val) > 0 {
+			first := val[0]
+			fmt.Printf(" ... also at depth %d,   ---> first has type '%T' and value '%v'\n", depth, first, first)
+
+			switch first.(type) {
+			case string:
+				sxpTy = C.STRSXP
+
+				stringSlice := C.allocVector(sxpTy, C.R_xlen_t(len(val)))
+				C.Rf_protect(stringSlice)
+				for i := range val {
+					C.SET_STRING_ELT(stringSlice, C.R_xlen_t(i), C.mkChar(C.CString(val[i].(string))))
+				}
+				if depth != 0 {
+					C.Rf_unprotect(1) // unprotect for stringSlice, now that we are returning it
+				}
+				return stringSlice
+
+			case int64:
+				sxpTy = C.REALSXP
+
+				numSlice := C.allocVector(sxpTy, C.R_xlen_t(len(val)))
+				C.Rf_protect(numSlice)
+				size := unsafe.Sizeof(C.double(0))
+				for i := range val {
+					// this pointer arithmetic wanted the //go:nosplit annotation
+					*((*C.double)(unsafe.Pointer(uintptr(unsafe.Pointer(C.REAL(numSlice))) + size*uintptr(i)))) = C.double(float64(val[i].(int64)))
+				}
+				if depth != 0 {
+					C.Rf_unprotect(1) // unprotect for numSlice, now that we are returning it
+				}
+				return numSlice
+
+			}
+		}
+
+		intslice := C.allocVector(sxpTy, C.R_xlen_t(len(val)))
 		C.Rf_protect(intslice)
 		for i := range val {
 			C.SET_VECTOR_ELT(intslice, C.R_xlen_t(i), decodeHelper(val[i], depth+1))
@@ -615,8 +657,8 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
 		s = C.allocVector(C.VECSXP, C.R_xlen_t(len(val)))
 		if depth == 0 {
-			// only protect the top parent of the returned value
-			// as per doc recommendation; http://www.hep.by/gnu/r-patched/r-exts/R-exts_103.html#SEC103
+			// only protect the top parent of the returned value, recursively
+			// geneated are transitively protected by their parent.
 			C.Rf_protect(s)
 		}
 		names := C.allocVector(C.VECSXP, C.R_xlen_t(len(val)))
