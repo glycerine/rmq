@@ -26,6 +26,8 @@ extern "C" {
 
   void SetTypeToLANGSXP(SEXP* sexp);
   
+  void WarnAndContinue(const char* msg);
+
 #ifdef __cplusplus
 }
 #endif

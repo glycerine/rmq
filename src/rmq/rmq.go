@@ -283,7 +283,7 @@ func server_main() {
 	data = Payload{
 		Sub: Subload{
 			A: "hi",
-			B: 43,
+			B: 4611686018427387904,
 		},
 		D: []string{"hello", "world"},
 		E: []int32{32, 17},
@@ -579,6 +579,9 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 	return s
 }
 
+const FLT_RADIX = 2
+const DBL_MANT_DIG = 53
+
 // this is suggested: go:nosplit, because we are doing unsafe pointer arithmetic
 // http://stackoverflow.com/questions/32700999/pointer-arithmetic-in-go
 
@@ -626,14 +629,59 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 				return stringSlice
 
 			case int64:
+				// we can only realistically hope to preserve 53 bits worth here.
+				// todo? unless... can we require bit64 package be available somehow?
+				sxpTy = C.REALSXP
+
+				numSlice := C.allocVector(sxpTy, C.R_xlen_t(len(val)))
+				C.Rf_protect(numSlice)
+				size := unsafe.Sizeof(C.double(0))
+				naflag := false
+				rmax := int64(C.pow(FLT_RADIX, DBL_MANT_DIG) - 1)
+				//fmt.Printf("rmax = %v\n", rmax) //  rmax = 9007199254740991
+				rmin := -rmax
+				for i := range val {
+					n := val[i].(int64)
+					if n < rmin || n > rmax {
+						naflag = true
+					}
+
+					// this pointer arithmetic wants the //go:nosplit annotation at the top of this function
+					*((*C.double)(unsafe.Pointer(uintptr(unsafe.Pointer(C.REAL(numSlice))) + size*uintptr(i)))) = C.double(float64(n))
+				}
+				if naflag {
+					C.WarnAndContinue(C.CString("integer precision lost while converting to double"))
+				}
+
+				if depth != 0 {
+					C.Rf_unprotect(1) // unprotect for numSlice, now that we are returning it
+				}
+				return numSlice
+
+			case int32:
 				sxpTy = C.REALSXP
 
 				numSlice := C.allocVector(sxpTy, C.R_xlen_t(len(val)))
 				C.Rf_protect(numSlice)
 				size := unsafe.Sizeof(C.double(0))
 				for i := range val {
-					// this pointer arithmetic wanted the //go:nosplit annotation
-					*((*C.double)(unsafe.Pointer(uintptr(unsafe.Pointer(C.REAL(numSlice))) + size*uintptr(i)))) = C.double(float64(val[i].(int64)))
+					// this pointer arithmetic wants the //go:nosplit annotation at the top of this function
+					*((*C.double)(unsafe.Pointer(uintptr(unsafe.Pointer(C.REAL(numSlice))) + size*uintptr(i)))) = C.double(float64(val[i].(int32)))
+				}
+				if depth != 0 {
+					C.Rf_unprotect(1) // unprotect for numSlice, now that we are returning it
+				}
+				return numSlice
+
+			case int:
+				sxpTy = C.REALSXP
+
+				numSlice := C.allocVector(sxpTy, C.R_xlen_t(len(val)))
+				C.Rf_protect(numSlice)
+				size := unsafe.Sizeof(C.double(0))
+				for i := range val {
+					// this pointer arithmetic wants the //go:nosplit annotation at the top of this function
+					*((*C.double)(unsafe.Pointer(uintptr(unsafe.Pointer(C.REAL(numSlice))) + size*uintptr(i)))) = C.double(float64(val[i].(int)))
 				}
 				if depth != 0 {
 					C.Rf_unprotect(1) // unprotect for numSlice, now that we are returning it

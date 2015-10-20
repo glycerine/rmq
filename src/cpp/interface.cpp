@@ -63,6 +63,10 @@ SEXP rmq(SEXP str_) {
     REprintf(msg);
   }
   
+  void WarnAndContinue(const char* msg) {
+    warning(msg);
+  }
+  
   void SetTypeToLANGSXP(SEXP* sexp) {
     SET_TYPEOF(*sexp, LANGSXP);
   }
