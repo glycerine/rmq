@@ -187,7 +187,7 @@ func Cli(str_ C.SEXP) C.SEXP {
 
 	reply := client_main([]byte(msg))
 
-	fmt.Printf("rmq says: after client_main().\n")
+	VPrintf("rmq says: after client_main().\n")
 
 	if len(reply) == 0 {
 		return C.R_NilValue
@@ -222,7 +222,7 @@ func client_main(msg []byte) []byte {
 
 		c, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 		if err != nil {
-			fmt.Println("dial:", err)
+			fmt.Println("dial error:", err)
 			c = nil
 			return []byte{}
 		}
@@ -773,7 +773,7 @@ func ToMsgpack(s C.SEXP) C.SEXP {
 func encodeRIntoMsgpack(s C.SEXP) []byte {
 	iface := toIface(s)
 
-	fmt.Printf("toIface returned: '%#v'\n", iface)
+	VPrintf("toIface returned: '%#v'\n", iface)
 
 	if iface == nil {
 		return []byte{}
@@ -798,12 +798,12 @@ func toIface(s C.SEXP) interface{} {
 	switch C.TYPEOF(s) {
 	case C.VECSXP:
 		// an R generic vector; e.g list()
-		fmt.Printf("encodeRIntoMsgpack sees VECSXP\n")
+		VPrintf("encodeRIntoMsgpack sees VECSXP\n")
 
 		// could be a map or a slice. Check out the names.
 		rnames := C.Rf_getAttrib(s, C.R_NamesSymbol)
 		rnamesLen := int(C.Rf_xlength(rnames))
-		fmt.Printf("namesLen = %d\n", rnamesLen)
+		VPrintf("namesLen = %d\n", rnamesLen)
 		if rnamesLen > 0 {
 			myMap := map[string]interface{}{}
 			for i := 0; i < rnamesLen; i++ {
@@ -823,7 +823,7 @@ func toIface(s C.SEXP) interface{} {
 
 	case C.REALSXP:
 		// a vector of float64 (numeric)
-		fmt.Printf("encodeRIntoMsgpack sees REALSXP\n")
+		VPrintf("encodeRIntoMsgpack sees REALSXP\n")
 		mySlice := make([]float64, n)
 		for i := 0; i < n; i++ {
 			mySlice[i] = float64(C.get_real_elt(s, C.int(i)))
@@ -833,76 +833,77 @@ func toIface(s C.SEXP) interface{} {
 
 	case C.INTSXP:
 		// a vector of int32
-		fmt.Printf("encodeRIntoMsgpack sees INTSXP\n")
+		VPrintf("encodeRIntoMsgpack sees INTSXP\n")
 		mySlice := make([]int, n)
 		for i := 0; i < n; i++ {
 			mySlice[i] = int(C.get_int_elt(s, C.int(i)))
 		}
-		fmt.Printf("INTSXP mySlice = '%#v'\n", mySlice)
+		VPrintf("INTSXP mySlice = '%#v'\n", mySlice)
 		return mySlice
 
 	case C.RAWSXP:
-		fmt.Printf("encodeRIntoMsgpack sees RAWSXP\n")
+		VPrintf("encodeRIntoMsgpack sees RAWSXP\n")
 		mySlice := make([]byte, n)
 		C.memcpy(unsafe.Pointer(&mySlice[0]), unsafe.Pointer(C.RAW(s)), C.size_t(n))
-		fmt.Printf("RAWSXP mySlice = '%#v'\n", mySlice)
+		VPrintf("RAWSXP mySlice = '%#v'\n", mySlice)
 		return mySlice
 
 	case C.STRSXP:
 		// a vector of string (pointers to charsxp that are interned)
-		fmt.Printf("encodeRIntoMsgpack sees STRSXP\n")
+		VPrintf("encodeRIntoMsgpack sees STRSXP\n")
 		mySlice := make([]string, n)
 		for i := 0; i < n; i++ {
 			mySlice[i] = C.GoString(C.get_string_elt(s, C.int(i)))
 		}
-		fmt.Printf("STRSXP mySlice = '%#v'\n", mySlice)
+		VPrintf("STRSXP mySlice = '%#v'\n", mySlice)
 		return mySlice
+
+	case C.NILSXP:
+		// c(); an empty vector
+		VPrintf("encodeRIntoMsgpack sees NILSXP\n")
+		return nil
 
 	case C.CHARSXP:
 		// a single string, interned in a global pool for reuse by STRSXP.
-		fmt.Printf("encodeRIntoMsgpack sees CHARSXP\n")
-	case C.NILSXP:
-		// c(); an empty vector
-		fmt.Printf("encodeRIntoMsgpack sees NILSXP\n")
-
+		VPrintf("encodeRIntoMsgpack sees CHARSXP\n")
 	case C.SYMSXP:
-		fmt.Printf("encodeRIntoMsgpack sees SYMSXP\n")
+		VPrintf("encodeRIntoMsgpack sees SYMSXP\n")
 	case C.LISTSXP:
-		fmt.Printf("encodeRIntoMsgpack sees LISTSXP\n")
+		VPrintf("encodeRIntoMsgpack sees LISTSXP\n")
 	case C.CLOSXP:
-		fmt.Printf("encodeRIntoMsgpack sees CLOSXP\n")
+		VPrintf("encodeRIntoMsgpack sees CLOSXP\n")
 	case C.ENVSXP:
-		fmt.Printf("encodeRIntoMsgpack sees ENVSXP\n")
+		VPrintf("encodeRIntoMsgpack sees ENVSXP\n")
 	case C.PROMSXP:
-		fmt.Printf("encodeRIntoMsgpack sees PROMSXP\n")
+		VPrintf("encodeRIntoMsgpack sees PROMSXP\n")
 	case C.LANGSXP:
-		fmt.Printf("encodeRIntoMsgpack sees LANGSXP\n")
+		VPrintf("encodeRIntoMsgpack sees LANGSXP\n")
 	case C.SPECIALSXP:
-		fmt.Printf("encodeRIntoMsgpack sees SPECIALSXP\n")
+		VPrintf("encodeRIntoMsgpack sees SPECIALSXP\n")
 	case C.BUILTINSXP:
-		fmt.Printf("encodeRIntoMsgpack sees BUILTINSXP\n")
+		VPrintf("encodeRIntoMsgpack sees BUILTINSXP\n")
 	case C.LGLSXP:
-		fmt.Printf("encodeRIntoMsgpack sees LGLSXP\n")
+		VPrintf("encodeRIntoMsgpack sees LGLSXP\n")
 	case C.CPLXSXP:
-		fmt.Printf("encodeRIntoMsgpack sees CPLXSXP\n")
+		VPrintf("encodeRIntoMsgpack sees CPLXSXP\n")
 	case C.DOTSXP:
-		fmt.Printf("encodeRIntoMsgpack sees DOTSXP\n")
+		VPrintf("encodeRIntoMsgpack sees DOTSXP\n")
 	case C.ANYSXP:
-		fmt.Printf("encodeRIntoMsgpack sees ANYSXP\n")
+		VPrintf("encodeRIntoMsgpack sees ANYSXP\n")
 	case C.EXPRSXP:
-		fmt.Printf("encodeRIntoMsgpack sees EXPRSXP\n")
+		VPrintf("encodeRIntoMsgpack sees EXPRSXP\n")
 	case C.BCODESXP:
-		fmt.Printf("encodeRIntoMsgpack sees BCODESXP\n")
+		VPrintf("encodeRIntoMsgpack sees BCODESXP\n")
 	case C.EXTPTRSXP:
-		fmt.Printf("encodeRIntoMsgpack sees EXTPTRSXP\n")
+		VPrintf("encodeRIntoMsgpack sees EXTPTRSXP\n")
 	case C.WEAKREFSXP:
-		fmt.Printf("encodeRIntoMsgpack sees WEAKREFSXP\n")
+		VPrintf("encodeRIntoMsgpack sees WEAKREFSXP\n")
 	case C.S4SXP:
-		fmt.Printf("encodeRIntoMsgpack sees S4SXP\n")
+		VPrintf("encodeRIntoMsgpack sees S4SXP\n")
 	default:
-		fmt.Printf("encodeRIntoMsgpack sees <unknown>\n")
+		VPrintf("encodeRIntoMsgpack sees <unknown>\n")
 	}
-	fmt.Printf("... warning: encodeRIntoMsgpack() ignoring this input.\n")
+	VPrintf("... warning: encodeRIntoMsgpack() ignoring this input.\n")
 
 	return nil
 }
