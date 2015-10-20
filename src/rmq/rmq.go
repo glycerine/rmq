@@ -12,6 +12,7 @@ import "C"
 //go:generate msgp
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"net/http"
@@ -286,7 +287,7 @@ func echo(w http.ResponseWriter, r *http.Request) {
 func server_main() {
 
 	data = Payload{
-		Blob: []byte{0x05, 0x07, 0x06},
+		Blob: []byte{0xff, 0xf0, 0x06},
 		Sub: Subload{
 			A: "hi",
 			B: 4611686018427387904,
@@ -564,6 +565,7 @@ func (m *MsgpackHelper) init() {
 	m.mh.RawToString = true
 	m.mh.WriteExt = true
 	m.mh.SignedInteger = true
+	m.mh.Canonical = true // sort maps before writing them
 
 	m.initialized = true
 }
@@ -682,6 +684,10 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 				numSlice := C.allocVector(sxpTy, C.R_xlen_t(len(val)))
 				C.Rf_protect(numSlice)
 				size := unsafe.Sizeof(C.double(0))
+
+				// unfortunately C.memmove() doesn't work here (I tried). I speculate this is because val[i] is
+				// really wrapped in an interface{} rather than being a actual float64. val is an
+				// []interface{} after all.
 				for i := range val {
 					// this pointer arithmetic wants the //go:nosplit annotation at the top of this function
 					*((*C.double)(unsafe.Pointer(uintptr(unsafe.Pointer(C.REAL(numSlice))) + size*uintptr(i)))) = C.double(val[i].(float64))
@@ -747,4 +753,115 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 	}
 
 	return s
+}
+
+//export ToMsgpack
+func ToMsgpack(s C.SEXP) C.SEXP {
+	byteSlice := encodeRIntoMsgpack(s)
+
+	if len(byteSlice) == 0 {
+		return C.R_NilValue
+	}
+	rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(len(byteSlice)))
+	C.Rf_protect(rawmsg)
+	C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&byteSlice[0]), C.size_t(len(byteSlice)))
+	C.Rf_unprotect(1)
+
+	return rawmsg
+}
+
+func encodeRIntoMsgpack(s C.SEXP) []byte {
+	iface := toIface(s)
+
+	if iface == nil {
+		return []byte{}
+	}
+
+	var w bytes.Buffer
+	enc := codec.NewEncoder(&w, &h.mh)
+	err := enc.Encode(&iface)
+	panicOn(err)
+
+	return w.Bytes()
+}
+
+func toIface(s C.SEXP) interface{} {
+	// generate a go map or slice or scalar value, then encode it
+
+	switch C.TYPEOF(s) {
+	case C.VECSXP:
+		// an R generic vector; e.g list()
+		fmt.Printf("encodeRIntoMsgpack sees VECSXP\n")
+
+		// could be a map or a slice. Check out the names.
+		rnames := C.Rf_getAttrib(s, C.R_NamesSymbol)
+		rnamesLen := int(C.Rf_xlength(rnames))
+		fmt.Printf("namesLen = %d\n", rnamesLen)
+		myNames := map[string]interface{}{}
+		for i := 0; i < rnamesLen; i++ {
+			myNames[C.GoString(C.get_string_elt(rnames, C.int(i)))] = toIface(C.VECTOR_ELT(s, C.R_xlen_t(i)))
+		}
+		fmt.Printf("myNames = '%#v'\n", myNames)
+
+	case C.INTSXP:
+		// a vector of int32
+		fmt.Printf("encodeRIntoMsgpack sees INTSXP\n")
+		// asInteger(x)
+	case C.REALSXP:
+		// a vector of float64 (numeric)
+		fmt.Printf("encodeRIntoMsgpack sees REALSXP\n")
+		// asReal(x)
+	case C.STRSXP:
+		// a vector of string (pointers to charsxp that are interned)
+		fmt.Printf("encodeRIntoMsgpack sees STRSXP\n")
+		// CHAR(asChar(x))
+	case C.CHARSXP:
+		// a single string, interned in a global pool for reuse by STRSXP.
+		fmt.Printf("encodeRIntoMsgpack sees CHARSXP\n")
+	case C.NILSXP:
+		// c(); an empty vector
+		fmt.Printf("encodeRIntoMsgpack sees NILSXP\n")
+
+	case C.SYMSXP:
+		fmt.Printf("encodeRIntoMsgpack sees SYMSXP\n")
+	case C.LISTSXP:
+		fmt.Printf("encodeRIntoMsgpack sees LISTSXP\n")
+	case C.CLOSXP:
+		fmt.Printf("encodeRIntoMsgpack sees CLOSXP\n")
+	case C.ENVSXP:
+		fmt.Printf("encodeRIntoMsgpack sees ENVSXP\n")
+	case C.PROMSXP:
+		fmt.Printf("encodeRIntoMsgpack sees PROMSXP\n")
+	case C.LANGSXP:
+		fmt.Printf("encodeRIntoMsgpack sees LANGSXP\n")
+	case C.SPECIALSXP:
+		fmt.Printf("encodeRIntoMsgpack sees SPECIALSXP\n")
+	case C.BUILTINSXP:
+		fmt.Printf("encodeRIntoMsgpack sees BUILTINSXP\n")
+	case C.LGLSXP:
+		fmt.Printf("encodeRIntoMsgpack sees LGLSXP\n")
+	case C.CPLXSXP:
+		fmt.Printf("encodeRIntoMsgpack sees CPLXSXP\n")
+	case C.DOTSXP:
+		fmt.Printf("encodeRIntoMsgpack sees DOTSXP\n")
+	case C.ANYSXP:
+		fmt.Printf("encodeRIntoMsgpack sees ANYSXP\n")
+	case C.EXPRSXP:
+		fmt.Printf("encodeRIntoMsgpack sees EXPRSXP\n")
+	case C.BCODESXP:
+		fmt.Printf("encodeRIntoMsgpack sees BCODESXP\n")
+	case C.EXTPTRSXP:
+		fmt.Printf("encodeRIntoMsgpack sees EXTPTRSXP\n")
+	case C.WEAKREFSXP:
+		fmt.Printf("encodeRIntoMsgpack sees WEAKREFSXP\n")
+	case C.S4SXP:
+		fmt.Printf("encodeRIntoMsgpack sees S4SXP\n")
+	case C.RAWSXP:
+		fmt.Printf("encodeRIntoMsgpack sees RAWSXP\n")
+	default:
+		fmt.Printf("encodeRIntoMsgpack sees <unknown>\n")
+	}
+	fmt.Printf("... warning: encodeRIntoMsgpack() ignoring this input.\n")
+
+	return nil
 }

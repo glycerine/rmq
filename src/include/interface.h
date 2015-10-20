@@ -28,6 +28,8 @@ extern "C" {
   
   void WarnAndContinue(const char* msg);
 
+  const char* get_string_elt(SEXP x, int i);
+
 #ifdef __cplusplus
 }
 #endif

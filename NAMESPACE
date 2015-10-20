@@ -4,7 +4,8 @@ export(
        srv,
        cli,
        callcount,
-       listenAndServe
+       listenAndServe,
+       to.msgpack
        )
 
        

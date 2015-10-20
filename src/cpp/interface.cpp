@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "interface.h"
 
@@ -69,6 +70,10 @@ SEXP rmq(SEXP str_) {
   
   void SetTypeToLANGSXP(SEXP* sexp) {
     SET_TYPEOF(*sexp, LANGSXP);
+  }
+
+  const char* get_string_elt(SEXP x, int i) {
+    return CHAR(STRING_ELT(x, i));
   }
 
 

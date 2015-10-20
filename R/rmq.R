@@ -19,3 +19,7 @@ callcount <- function() {
 listenAndServe <- function(addr, handler) {
   invisible(.Call("ListenAndServe", addr, handler, new.env()))
 }
+
+to.msgpack <- function(x) {
+  .Call("ToMsgpack", x)
+}
