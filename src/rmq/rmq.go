@@ -31,8 +31,8 @@ type Subload struct {
 
 type Payload struct {
 	Sub Subload
-	D   string
-	E   int
+	D   []string
+	E   []int32
 }
 
 var addr = "localhost:8081"
@@ -285,8 +285,8 @@ func server_main() {
 			A: "hi",
 			B: 43,
 		},
-		D: "hello",
-		E: 32,
+		D: []string{"hello", "world"},
+		E: []int32{32, 17},
 	}
 
 	var err error
@@ -575,7 +575,7 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 	fmt.Printf("decoded value: %v\n", r)
 
 	s := decodeHelper(r, 0)
-	C.Rf_unprotect(1)
+	C.Rf_unprotect(1) // unprotect s before returning it
 	return s
 }
 
@@ -591,9 +591,25 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		fmt.Printf("depth %d found int case: val = %#v\n", depth, val)
 		return C.Rf_ScalarReal(C.double(float64(val)))
 
+	case int32:
+		fmt.Printf("depth %d found int32 case: val = %#v\n", depth, val)
+		return C.Rf_ScalarReal(C.double(float64(val)))
+
 	case int64:
 		fmt.Printf("depth %d found int64 case: val = %#v\n", depth, val)
 		return C.Rf_ScalarReal(C.double(float64(val)))
+
+	case []interface{}:
+		fmt.Printf("depth %d found []interface{} case: val = %#v\n", depth, val)
+		intslice := C.allocVector(C.VECSXP, C.R_xlen_t(len(val)))
+		C.Rf_protect(intslice)
+		for i := range val {
+			C.SET_VECTOR_ELT(intslice, C.R_xlen_t(i), decodeHelper(val[i], depth+1))
+		}
+		if depth != 0 {
+			C.Rf_unprotect(1) // unprotect for intslice, now that we are returning it
+		}
+		return intslice
 
 	case map[string]interface{}:
 
