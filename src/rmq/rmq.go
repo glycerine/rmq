@@ -582,8 +582,16 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
 	switch val := r.(type) {
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+	case string:
+		fmt.Printf("depth %d found string case: val = %#v\n", depth, val)
+		return C.Rf_mkChar(C.CString(val))
+
+	case int: // int8, int16, int32, uint8, uint16, uint32:
 		fmt.Printf("depth %d found integer case: val = %#v\n", depth, val)
+		return C.Rf_ScalarReal(C.double(float64(val)))
+
+		//	case int, int64, uint, uint64:
+	//	fmt.Printf("depth %d found integer 64-bit case: val = %#v\n", depth, val)
 
 	case map[string]interface{}:
 
@@ -600,12 +608,17 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		i := 0
 		for k, v := range val {
 			i++
-			C.SET_VECTOR_ELT(s, C.R_xlen_t(i), decodeHelper(v, depth+1))
+
+			ele := decodeHelper(v, depth+1)
+			C.Rf_protect(ele)
+			C.SET_VECTOR_ELT(s, C.R_xlen_t(i), ele)
+			C.Rf_unprotect(1) // unprotect for ele, now that it is safely inside s.
+
 			ksexpString := C.Rf_mkChar(C.CString(k))
 			C.SET_VECTOR_ELT(names, C.R_xlen_t(i), ksexpString)
 		}
 		C.setAttrib(s, C.R_NamesSymbol, names)
-		C.Rf_unprotect(1) // unprotect for names
+		C.Rf_unprotect(1) // unprotect for names, now that it is attached to s.
 
 	default:
 		fmt.Printf("unknown type in type switch, val = %#v\n", val)
