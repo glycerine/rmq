@@ -773,6 +773,8 @@ func ToMsgpack(s C.SEXP) C.SEXP {
 func encodeRIntoMsgpack(s C.SEXP) []byte {
 	iface := toIface(s)
 
+	fmt.Printf("toIface returned: '%#v'\n", iface)
+
 	if iface == nil {
 		return []byte{}
 	}
@@ -788,6 +790,11 @@ func encodeRIntoMsgpack(s C.SEXP) []byte {
 func toIface(s C.SEXP) interface{} {
 	// generate a go map or slice or scalar value, then encode it
 
+	n := int(C.Rf_xlength(s))
+	if n == 0 {
+		return nil // drops type info. Meh.
+	}
+
 	switch C.TYPEOF(s) {
 	case C.VECSXP:
 		// an R generic vector; e.g list()
@@ -797,32 +804,60 @@ func toIface(s C.SEXP) interface{} {
 		rnames := C.Rf_getAttrib(s, C.R_NamesSymbol)
 		rnamesLen := int(C.Rf_xlength(rnames))
 		fmt.Printf("namesLen = %d\n", rnamesLen)
-		myNames := map[string]interface{}{}
-		for i := 0; i < rnamesLen; i++ {
-			myNames[C.GoString(C.get_string_elt(rnames, C.int(i)))] = toIface(C.VECTOR_ELT(s, C.R_xlen_t(i)))
+		if rnamesLen > 0 {
+			myMap := map[string]interface{}{}
+			for i := 0; i < rnamesLen; i++ {
+				myMap[C.GoString(C.get_string_elt(rnames, C.int(i)))] = toIface(C.VECTOR_ELT(s, C.R_xlen_t(i)))
+			}
+			VPrintf("VECSXP myMap = '%#v'\n", myMap)
+			return myMap
+		} else {
+			// else: no names, so we treat it as an array instead of as a map
+			mySlice := make([]interface{}, n)
+			for i := 0; i < n; i++ {
+				mySlice[i] = toIface(C.VECTOR_ELT(s, C.R_xlen_t(i)))
+			}
+			VPrintf("VECSXP mySlice = '%#v'\n", mySlice)
+			return mySlice
 		}
-		fmt.Printf("myNames = '%#v'\n", myNames)
 
-	case C.INTSXP:
-		// a vector of int32
-		fmt.Printf("encodeRIntoMsgpack sees INTSXP\n")
-		// asInteger(x)
 	case C.REALSXP:
 		// a vector of float64 (numeric)
 		fmt.Printf("encodeRIntoMsgpack sees REALSXP\n")
-		// asReal(x)
-		n := int(C.Rf_xlength(s))
 		mySlice := make([]float64, n)
 		for i := 0; i < n; i++ {
 			mySlice[i] = float64(C.get_real_elt(s, C.int(i)))
 		}
-		fmt.Printf("mySlice = '%#v'\n", mySlice)
+		VPrintf("VECSXP mySlice = '%#v'\n", mySlice)
+		return mySlice
+
+	case C.INTSXP:
+		// a vector of int32
+		fmt.Printf("encodeRIntoMsgpack sees INTSXP\n")
+		mySlice := make([]int, n)
+		for i := 0; i < n; i++ {
+			mySlice[i] = int(C.get_int_elt(s, C.int(i)))
+		}
+		fmt.Printf("INTSXP mySlice = '%#v'\n", mySlice)
+		return mySlice
+
+	case C.RAWSXP:
+		fmt.Printf("encodeRIntoMsgpack sees RAWSXP\n")
+		mySlice := make([]byte, n)
+		C.memcpy(unsafe.Pointer(&mySlice[0]), unsafe.Pointer(C.RAW(s)), C.size_t(n))
+		fmt.Printf("RAWSXP mySlice = '%#v'\n", mySlice)
 		return mySlice
 
 	case C.STRSXP:
 		// a vector of string (pointers to charsxp that are interned)
 		fmt.Printf("encodeRIntoMsgpack sees STRSXP\n")
-		// CHAR(asChar(x))
+		mySlice := make([]string, n)
+		for i := 0; i < n; i++ {
+			mySlice[i] = C.GoString(C.get_string_elt(s, C.int(i)))
+		}
+		fmt.Printf("STRSXP mySlice = '%#v'\n", mySlice)
+		return mySlice
+
 	case C.CHARSXP:
 		// a single string, interned in a global pool for reuse by STRSXP.
 		fmt.Printf("encodeRIntoMsgpack sees CHARSXP\n")
@@ -864,8 +899,6 @@ func toIface(s C.SEXP) interface{} {
 		fmt.Printf("encodeRIntoMsgpack sees WEAKREFSXP\n")
 	case C.S4SXP:
 		fmt.Printf("encodeRIntoMsgpack sees S4SXP\n")
-	case C.RAWSXP:
-		fmt.Printf("encodeRIntoMsgpack sees RAWSXP\n")
 	default:
 		fmt.Printf("encodeRIntoMsgpack sees <unknown>\n")
 	}

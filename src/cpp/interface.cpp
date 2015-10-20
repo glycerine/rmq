@@ -81,6 +81,10 @@ SEXP rmq(SEXP str_) {
   }
 
 
+  int get_int_elt(SEXP x, int i) {
+    return INTEGER(x)[i];
+  }
+
 #ifdef __cplusplus
 }
 #endif

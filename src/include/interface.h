@@ -32,6 +32,8 @@ extern "C" {
 
   double get_real_elt(SEXP x, int i);
 
+  int get_int_elt(SEXP x, int i);
+
 #ifdef __cplusplus
 }
 #endif
