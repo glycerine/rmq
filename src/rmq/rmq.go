@@ -308,43 +308,6 @@ func panicOn(err error) {
 	}
 }
 
-func decodeMsgpackToR(reply []byte) C.SEXP {
-
-	var mh codec.MsgpackHandle
-
-	mh.MapType = reflect.TypeOf(map[string]interface{}(nil))
-
-	var r interface{}
-
-	// configure extensions
-	// e.g. for msgpack, define functions and enable Time support for tag 1
-	mh.AddExt(reflect.TypeOf(time.Time{}), 1, timeEncExt, timeDecExt)
-	mh.RawToString = true
-	mh.WriteExt = true
-	mh.SignedInteger = true
-
-	err := codec.NewDecoderBytes(reply, &mh).Decode(&r)
-	panicOn(err)
-	fmt.Printf("decoded type : %T\n", r)
-	fmt.Printf("decoded value: %v\n", r)
-
-	s := C.allocList(1)
-	C.Rf_protect(s)
-
-	switch val := r.(type) {
-	default:
-		fmt.Printf("unknown type in type switch, val = %#v\n", val)
-	}
-	/*
-		rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(len(reply)))
-		C.Rf_protect(rawmsg)
-		C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&reply[0]), C.size_t(len(reply)))
-		C.Rf_unprotect(1)
-	*/
-
-	return s
-}
-
 func timeEncExt(rv reflect.Value) (bs []byte, err error) {
 	switch v2 := rv.Interface().(type) {
 	case time.Time:
@@ -572,3 +535,87 @@ func pruneSignExt(v []byte, pos bool) (n int) {
 
 var bsAll0x00 = []byte{0, 0, 0, 0, 0, 0, 0, 0}
 var bsAll0xff = []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+
+// end of stuff extracted for ugorji/codec
+
+type MsgpackHelper struct {
+	initialized bool
+	mh          codec.MsgpackHandle
+}
+
+func (m *MsgpackHelper) init() {
+	if m.initialized {
+		return
+	}
+
+	m.mh.MapType = reflect.TypeOf(map[string]interface{}(nil))
+
+	// configure extensions
+	// e.g. for msgpack, define functions and enable Time support for tag 1
+	m.mh.AddExt(reflect.TypeOf(time.Time{}), 1, timeEncExt, timeDecExt)
+	m.mh.RawToString = true
+	m.mh.WriteExt = true
+	m.mh.SignedInteger = true
+
+	m.initialized = true
+}
+
+var h MsgpackHelper
+
+func decodeMsgpackToR(reply []byte) C.SEXP {
+
+	h.init()
+	var r interface{}
+
+	decoder := codec.NewDecoderBytes(reply, &h.mh)
+	err := decoder.Decode(&r)
+	panicOn(err)
+
+	fmt.Printf("decoded type : %T\n", r)
+	fmt.Printf("decoded value: %v\n", r)
+
+	s := decodeHelper(r, 0)
+	C.Rf_unprotect(1)
+	return s
+}
+
+func decodeHelper(r interface{}, depth int) (s C.SEXP) {
+
+	switch val := r.(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		fmt.Printf("depth %d found integer case: val = %#v\n", depth, val)
+
+	case map[string]interface{}:
+
+		s = C.allocVector(C.VECSXP, C.R_xlen_t(len(val)))
+		if depth == 0 {
+			// only protect the top parent of the returned value
+			// as per doc recommendation; http://www.hep.by/gnu/r-patched/r-exts/R-exts_103.html#SEC103
+			C.Rf_protect(s)
+		}
+		names := C.allocVector(C.STRSXP, C.R_xlen_t(len(val)))
+		C.Rf_protect(names)
+
+		fmt.Printf("depth %d found map[string]interface case: val = %#v\n", depth, val)
+		i := 0
+		for k, v := range val {
+			i++
+			C.SET_VECTOR_ELT(s, C.R_xlen_t(i), decodeHelper(v, depth+1))
+			ksexpString := C.Rf_mkChar(C.CString(k))
+			C.SET_VECTOR_ELT(names, C.R_xlen_t(i), ksexpString)
+		}
+		C.setAttrib(s, C.R_NamesSymbol, names)
+		C.Rf_unprotect(1) // unprotect for names
+
+	default:
+		fmt.Printf("unknown type in type switch, val = %#v\n", val)
+	}
+	/*
+		rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(len(reply)))
+		C.Rf_protect(rawmsg)
+		C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&reply[0]), C.size_t(len(reply)))
+		C.Rf_unprotect(1)
+	*/
+
+	return s
+}
