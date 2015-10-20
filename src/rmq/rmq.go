@@ -581,17 +581,19 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 
 func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
+	fmt.Printf("decodeHelper() at depth %d, decoded type is %T\n", depth, r)
 	switch val := r.(type) {
 	case string:
 		fmt.Printf("depth %d found string case: val = %#v\n", depth, val)
 		return C.Rf_mkChar(C.CString(val))
 
-	case int: // int8, int16, int32, uint8, uint16, uint32:
-		fmt.Printf("depth %d found integer case: val = %#v\n", depth, val)
+	case int:
+		fmt.Printf("depth %d found int case: val = %#v\n", depth, val)
 		return C.Rf_ScalarReal(C.double(float64(val)))
 
-		//	case int, int64, uint, uint64:
-	//	fmt.Printf("depth %d found integer 64-bit case: val = %#v\n", depth, val)
+	case int64:
+		fmt.Printf("depth %d found int64 case: val = %#v\n", depth, val)
+		return C.Rf_ScalarReal(C.double(float64(val)))
 
 	case map[string]interface{}:
 
@@ -601,13 +603,12 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 			// as per doc recommendation; http://www.hep.by/gnu/r-patched/r-exts/R-exts_103.html#SEC103
 			C.Rf_protect(s)
 		}
-		names := C.allocVector(C.STRSXP, C.R_xlen_t(len(val)))
+		names := C.allocVector(C.VECSXP, C.R_xlen_t(len(val)))
 		C.Rf_protect(names)
 
 		fmt.Printf("depth %d found map[string]interface case: val = %#v\n", depth, val)
 		i := 0
 		for k, v := range val {
-			i++
 
 			ele := decodeHelper(v, depth+1)
 			C.Rf_protect(ele)
@@ -616,6 +617,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
 			ksexpString := C.Rf_mkChar(C.CString(k))
 			C.SET_VECTOR_ELT(names, C.R_xlen_t(i), ksexpString)
+			i++
 		}
 		C.setAttrib(s, C.R_NamesSymbol, names)
 		C.Rf_unprotect(1) // unprotect for names, now that it is attached to s.
