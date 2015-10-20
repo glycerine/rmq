@@ -76,6 +76,10 @@ SEXP rmq(SEXP str_) {
     return CHAR(STRING_ELT(x, i));
   }
 
+  double get_real_elt(SEXP x, int i) {
+    return REAL(x)[i];
+  }
+
 
 #ifdef __cplusplus
 }

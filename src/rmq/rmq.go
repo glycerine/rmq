@@ -811,6 +811,14 @@ func toIface(s C.SEXP) interface{} {
 		// a vector of float64 (numeric)
 		fmt.Printf("encodeRIntoMsgpack sees REALSXP\n")
 		// asReal(x)
+		n := int(C.Rf_xlength(s))
+		mySlice := make([]float64, n)
+		for i := 0; i < n; i++ {
+			mySlice[i] = float64(C.get_real_elt(s, C.int(i)))
+		}
+		fmt.Printf("mySlice = '%#v'\n", mySlice)
+		return mySlice
+
 	case C.STRSXP:
 		// a vector of string (pointers to charsxp that are interned)
 		fmt.Printf("encodeRIntoMsgpack sees STRSXP\n")

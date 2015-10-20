@@ -30,6 +30,8 @@ extern "C" {
 
   const char* get_string_elt(SEXP x, int i);
 
+  double get_real_elt(SEXP x, int i);
+
 #ifdef __cplusplus
 }
 #endif
