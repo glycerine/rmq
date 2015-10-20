@@ -1,0 +1,17 @@
+# pack-refs with: peeled fully-peeled 
+6a27fafe7ae100d5868d9866777016117f7e3837 refs/remotes/origin/appengine
+3dbb86924904e5572baab43e534343b0ee11145c refs/remotes/origin/asm
+aef3fe24237de967745baaf606b26d53e6a56b9e refs/remotes/origin/fixbin
+9b68ed40a4fd267bde32b1b51cb308d65dbde212 refs/remotes/origin/fuse
+90ba846b55753c756fbf7a8d7ebcd10c7de3dee0 refs/remotes/origin/hfix-size
+6a1b9bb99ec13cd01c7ba353a231941d16ba9309 refs/remotes/origin/imut-recv
+cf3b20df2a6115bafd1936e3a809b49d5a4686bb refs/remotes/origin/master
+626c0bf89aa2b6c23d379f1e61651247497fe06c refs/remotes/origin/number
+7dbb4ce3f01de5b08993f378bbf01a44d263d871 refs/remotes/origin/passdir
+ead60c865eda1d3e48a824268d5f418513a51970 refs/remotes/origin/pre-gen
+ad1106983a3446fafdfe7a32edd3546e528c52b6 refs/remotes/origin/raw-print
+85d9a2ee893ce2d25e0a53b37d81360959b1b3e0 refs/remotes/origin/readfile
+c8ed32c1281f411673da444ad77d3fe7fca408a2 refs/remotes/origin/selector-shim-fix
+7ca3edaed2798576016073cca07a4e0955bc6749 refs/remotes/origin/unsafe-refactor
+6dd7619a22b33784bcbe3236ae33fb1b4f1a2205 refs/remotes/origin/workaround109
+9d2043dd50c2ab0de7e698fa92f9e86cfacc000a refs/tags/v1.0-alpha
