@@ -27,12 +27,15 @@ import (
 type Subload struct {
 	A string
 	B int
+	F []float64
 }
 
 type Payload struct {
-	Sub Subload
-	D   []string
-	E   []int32
+	Sub  Subload
+	D    []string
+	E    []int32
+	G    []float64
+	Blob []byte
 }
 
 var addr = "localhost:8081"
@@ -96,6 +99,8 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 		C.defineVar(C.install(C.CString("msg")), rawmsg, rho_)
 
 		R_serialize_fun = C.findVar(C.install(C.CString("serialize")), C.R_GlobalEnv)
+
+		// todo: callbacks to R functions here not working. don't really need them if R always acts as a client instead.
 
 		// evaluate
 		C.PrintToR(C.CString("listenAndServe: stuffed msg into env rho_.\n"))
@@ -281,12 +286,15 @@ func echo(w http.ResponseWriter, r *http.Request) {
 func server_main() {
 
 	data = Payload{
+		Blob: []byte{0x05, 0x07, 0x06},
 		Sub: Subload{
 			A: "hi",
 			B: 4611686018427387904,
+			F: []float64{1.5, 3.4},
 		},
 		D: []string{"hello", "world"},
 		E: []int32{32, 17},
+		G: []float64{},
 	}
 
 	var err error
@@ -571,8 +579,8 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 	err := decoder.Decode(&r)
 	panicOn(err)
 
-	fmt.Printf("decoded type : %T\n", r)
-	fmt.Printf("decoded value: %v\n", r)
+	VPrintf("decoded type : %T\n", r)
+	VPrintf("decoded value: %v\n", r)
 
 	s := decodeHelper(r, 0)
 	C.Rf_unprotect(1) // unprotect s before returning it
@@ -588,31 +596,41 @@ const DBL_MANT_DIG = 53
 //go:nosplit
 func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
-	fmt.Printf("decodeHelper() at depth %d, decoded type is %T\n", depth, r)
+	VPrintf("decodeHelper() at depth %d, decoded type is %T\n", depth, r)
 	switch val := r.(type) {
 	case string:
-		fmt.Printf("depth %d found string case: val = %#v\n", depth, val)
+		VPrintf("depth %d found string case: val = %#v\n", depth, val)
 		return C.Rf_mkString(C.CString(val))
 
 	case int:
-		fmt.Printf("depth %d found int case: val = %#v\n", depth, val)
+		VPrintf("depth %d found int case: val = %#v\n", depth, val)
 		return C.Rf_ScalarReal(C.double(float64(val)))
 
 	case int32:
-		fmt.Printf("depth %d found int32 case: val = %#v\n", depth, val)
+		VPrintf("depth %d found int32 case: val = %#v\n", depth, val)
 		return C.Rf_ScalarReal(C.double(float64(val)))
 
 	case int64:
-		fmt.Printf("depth %d found int64 case: val = %#v\n", depth, val)
+		VPrintf("depth %d found int64 case: val = %#v\n", depth, val)
 		return C.Rf_ScalarReal(C.double(float64(val)))
 
 	case []interface{}:
-		fmt.Printf("depth %d found []interface{} case: val = %#v\n", depth, val)
+		VPrintf("depth %d found []interface{} case: val = %#v\n", depth, val)
 
 		var sxpTy C.SEXPTYPE = C.VECSXP
+
+		if len(val) == 0 {
+			emptyvec := C.allocVector(C.NILSXP, C.R_xlen_t(0))
+
+			if depth == 0 {
+				C.Rf_protect(emptyvec)
+			}
+			return emptyvec
+		}
+
 		if len(val) > 0 {
 			first := val[0]
-			fmt.Printf(" ... also at depth %d,   ---> first has type '%T' and value '%v'\n", depth, first, first)
+			VPrintf(" ... also at depth %d,   ---> first has type '%T' and value '%v'\n", depth, first, first)
 
 			switch first.(type) {
 			case string:
@@ -638,7 +656,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 				size := unsafe.Sizeof(C.double(0))
 				naflag := false
 				rmax := int64(C.pow(FLT_RADIX, DBL_MANT_DIG) - 1)
-				//fmt.Printf("rmax = %v\n", rmax) //  rmax = 9007199254740991
+				//VPrintf("rmax = %v\n", rmax) //  rmax = 9007199254740991
 				rmin := -rmax
 				for i := range val {
 					n := val[i].(int64)
@@ -658,7 +676,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 				}
 				return numSlice
 
-			case int32:
+			case float64:
 				sxpTy = C.REALSXP
 
 				numSlice := C.allocVector(sxpTy, C.R_xlen_t(len(val)))
@@ -666,22 +684,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 				size := unsafe.Sizeof(C.double(0))
 				for i := range val {
 					// this pointer arithmetic wants the //go:nosplit annotation at the top of this function
-					*((*C.double)(unsafe.Pointer(uintptr(unsafe.Pointer(C.REAL(numSlice))) + size*uintptr(i)))) = C.double(float64(val[i].(int32)))
-				}
-				if depth != 0 {
-					C.Rf_unprotect(1) // unprotect for numSlice, now that we are returning it
-				}
-				return numSlice
-
-			case int:
-				sxpTy = C.REALSXP
-
-				numSlice := C.allocVector(sxpTy, C.R_xlen_t(len(val)))
-				C.Rf_protect(numSlice)
-				size := unsafe.Sizeof(C.double(0))
-				for i := range val {
-					// this pointer arithmetic wants the //go:nosplit annotation at the top of this function
-					*((*C.double)(unsafe.Pointer(uintptr(unsafe.Pointer(C.REAL(numSlice))) + size*uintptr(i)))) = C.double(float64(val[i].(int)))
+					*((*C.double)(unsafe.Pointer(uintptr(unsafe.Pointer(C.REAL(numSlice))) + size*uintptr(i)))) = C.double(val[i].(float64))
 				}
 				if depth != 0 {
 					C.Rf_unprotect(1) // unprotect for numSlice, now that we are returning it
@@ -712,7 +715,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		names := C.allocVector(C.VECSXP, C.R_xlen_t(len(val)))
 		C.Rf_protect(names)
 
-		fmt.Printf("depth %d found map[string]interface case: val = %#v\n", depth, val)
+		VPrintf("depth %d found map[string]interface case: val = %#v\n", depth, val)
 		i := 0
 		for k, v := range val {
 
@@ -728,15 +731,20 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		C.setAttrib(s, C.R_NamesSymbol, names)
 		C.Rf_unprotect(1) // unprotect for names, now that it is attached to s.
 
+	case []byte:
+		VPrintf("depth %d found []byte case: val = %#v\n", depth, val)
+
+		rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(len(val)))
+
+		if depth == 0 {
+			C.Rf_protect(rawmsg)
+		}
+		C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&val[0]), C.size_t(len(val)))
+		return rawmsg
+
 	default:
 		fmt.Printf("unknown type in type switch, val = %#v\n", val)
 	}
-	/*
-		rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(len(reply)))
-		C.Rf_protect(rawmsg)
-		C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&reply[0]), C.size_t(len(reply)))
-		C.Rf_unprotect(1)
-	*/
 
 	return s
 }

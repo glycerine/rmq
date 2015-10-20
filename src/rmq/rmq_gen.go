@@ -25,34 +25,9 @@ func (z *Payload) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Sub":
-			var isz uint32
-			isz, err = dc.ReadMapHeader()
+			err = z.Sub.DecodeMsg(dc)
 			if err != nil {
 				return
-			}
-			for isz > 0 {
-				isz--
-				field, err = dc.ReadMapKeyPtr()
-				if err != nil {
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "A":
-					z.Sub.A, err = dc.ReadString()
-					if err != nil {
-						return
-					}
-				case "B":
-					z.Sub.B, err = dc.ReadInt()
-					if err != nil {
-						return
-					}
-				default:
-					err = dc.Skip()
-					if err != nil {
-						return
-					}
-				}
 			}
 		case "D":
 			var xsz uint32
@@ -88,6 +63,28 @@ func (z *Payload) DecodeMsg(dc *msgp.Reader) (err error) {
 					return
 				}
 			}
+		case "G":
+			var xsz uint32
+			xsz, err = dc.ReadArrayHeader()
+			if err != nil {
+				return
+			}
+			if cap(z.G) >= int(xsz) {
+				z.G = z.G[:xsz]
+			} else {
+				z.G = make([]float64, xsz)
+			}
+			for bai := range z.G {
+				z.G[bai], err = dc.ReadFloat64()
+				if err != nil {
+					return
+				}
+			}
+		case "Blob":
+			z.Blob, err = dc.ReadBytes(z.Blob)
+			if err != nil {
+				return
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -100,24 +97,13 @@ func (z *Payload) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *Payload) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 3
+	// map header, size 5
 	// write "Sub"
-	// map header, size 2
-	// write "A"
-	err = en.Append(0x83, 0xa3, 0x53, 0x75, 0x62, 0x82, 0xa1, 0x41)
+	err = en.Append(0x85, 0xa3, 0x53, 0x75, 0x62)
 	if err != nil {
 		return err
 	}
-	err = en.WriteString(z.Sub.A)
-	if err != nil {
-		return
-	}
-	// write "B"
-	err = en.Append(0xa1, 0x42)
-	if err != nil {
-		return err
-	}
-	err = en.WriteInt(z.Sub.B)
+	err = z.Sub.EncodeMsg(en)
 	if err != nil {
 		return
 	}
@@ -151,21 +137,43 @@ func (z *Payload) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
+	// write "G"
+	err = en.Append(0xa1, 0x47)
+	if err != nil {
+		return err
+	}
+	err = en.WriteArrayHeader(uint32(len(z.G)))
+	if err != nil {
+		return
+	}
+	for bai := range z.G {
+		err = en.WriteFloat64(z.G[bai])
+		if err != nil {
+			return
+		}
+	}
+	// write "Blob"
+	err = en.Append(0xa4, 0x42, 0x6c, 0x6f, 0x62)
+	if err != nil {
+		return err
+	}
+	err = en.WriteBytes(z.Blob)
+	if err != nil {
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *Payload) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 3
+	// map header, size 5
 	// string "Sub"
-	// map header, size 2
-	// string "A"
-	o = append(o, 0x83, 0xa3, 0x53, 0x75, 0x62, 0x82, 0xa1, 0x41)
-	o = msgp.AppendString(o, z.Sub.A)
-	// string "B"
-	o = append(o, 0xa1, 0x42)
-	o = msgp.AppendInt(o, z.Sub.B)
+	o = append(o, 0x85, 0xa3, 0x53, 0x75, 0x62)
+	o, err = z.Sub.MarshalMsg(o)
+	if err != nil {
+		return
+	}
 	// string "D"
 	o = append(o, 0xa1, 0x44)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.D)))
@@ -178,6 +186,15 @@ func (z *Payload) MarshalMsg(b []byte) (o []byte, err error) {
 	for bzg := range z.E {
 		o = msgp.AppendInt32(o, z.E[bzg])
 	}
+	// string "G"
+	o = append(o, 0xa1, 0x47)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.G)))
+	for bai := range z.G {
+		o = msgp.AppendFloat64(o, z.G[bai])
+	}
+	// string "Blob"
+	o = append(o, 0xa4, 0x42, 0x6c, 0x6f, 0x62)
+	o = msgp.AppendBytes(o, z.Blob)
 	return
 }
 
@@ -198,34 +215,9 @@ func (z *Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		switch msgp.UnsafeString(field) {
 		case "Sub":
-			var isz uint32
-			isz, bts, err = msgp.ReadMapHeaderBytes(bts)
+			bts, err = z.Sub.UnmarshalMsg(bts)
 			if err != nil {
 				return
-			}
-			for isz > 0 {
-				isz--
-				field, bts, err = msgp.ReadMapKeyZC(bts)
-				if err != nil {
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "A":
-					z.Sub.A, bts, err = msgp.ReadStringBytes(bts)
-					if err != nil {
-						return
-					}
-				case "B":
-					z.Sub.B, bts, err = msgp.ReadIntBytes(bts)
-					if err != nil {
-						return
-					}
-				default:
-					bts, err = msgp.Skip(bts)
-					if err != nil {
-						return
-					}
-				}
 			}
 		case "D":
 			var xsz uint32
@@ -261,6 +253,28 @@ func (z *Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 					return
 				}
 			}
+		case "G":
+			var xsz uint32
+			xsz, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			if err != nil {
+				return
+			}
+			if cap(z.G) >= int(xsz) {
+				z.G = z.G[:xsz]
+			} else {
+				z.G = make([]float64, xsz)
+			}
+			for bai := range z.G {
+				z.G[bai], bts, err = msgp.ReadFloat64Bytes(bts)
+				if err != nil {
+					return
+				}
+			}
+		case "Blob":
+			z.Blob, bts, err = msgp.ReadBytesBytes(bts, z.Blob)
+			if err != nil {
+				return
+			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -273,11 +287,11 @@ func (z *Payload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 func (z *Payload) Msgsize() (s int) {
-	s = 1 + 4 + 1 + 2 + msgp.StringPrefixSize + len(z.Sub.A) + 2 + msgp.IntSize + 2 + msgp.ArrayHeaderSize
+	s = 1 + 4 + z.Sub.Msgsize() + 2 + msgp.ArrayHeaderSize
 	for xvk := range z.D {
 		s += msgp.StringPrefixSize + len(z.D[xvk])
 	}
-	s += 2 + msgp.ArrayHeaderSize + (len(z.E) * (msgp.Int32Size))
+	s += 2 + msgp.ArrayHeaderSize + (len(z.E) * (msgp.Int32Size)) + 2 + msgp.ArrayHeaderSize + (len(z.G) * (msgp.Float64Size)) + 5 + msgp.BytesPrefixSize + len(z.Blob)
 	return
 }
 
@@ -307,6 +321,23 @@ func (z *Subload) DecodeMsg(dc *msgp.Reader) (err error) {
 			if err != nil {
 				return
 			}
+		case "F":
+			var xsz uint32
+			xsz, err = dc.ReadArrayHeader()
+			if err != nil {
+				return
+			}
+			if cap(z.F) >= int(xsz) {
+				z.F = z.F[:xsz]
+			} else {
+				z.F = make([]float64, xsz)
+			}
+			for cmr := range z.F {
+				z.F[cmr], err = dc.ReadFloat64()
+				if err != nil {
+					return
+				}
+			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -318,10 +349,10 @@ func (z *Subload) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z Subload) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 2
+func (z *Subload) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 3
 	// write "A"
-	err = en.Append(0x82, 0xa1, 0x41)
+	err = en.Append(0x83, 0xa1, 0x41)
 	if err != nil {
 		return err
 	}
@@ -338,19 +369,40 @@ func (z Subload) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
+	// write "F"
+	err = en.Append(0xa1, 0x46)
+	if err != nil {
+		return err
+	}
+	err = en.WriteArrayHeader(uint32(len(z.F)))
+	if err != nil {
+		return
+	}
+	for cmr := range z.F {
+		err = en.WriteFloat64(z.F[cmr])
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z Subload) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *Subload) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 2
+	// map header, size 3
 	// string "A"
-	o = append(o, 0x82, 0xa1, 0x41)
+	o = append(o, 0x83, 0xa1, 0x41)
 	o = msgp.AppendString(o, z.A)
 	// string "B"
 	o = append(o, 0xa1, 0x42)
 	o = msgp.AppendInt(o, z.B)
+	// string "F"
+	o = append(o, 0xa1, 0x46)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.F)))
+	for cmr := range z.F {
+		o = msgp.AppendFloat64(o, z.F[cmr])
+	}
 	return
 }
 
@@ -380,6 +432,23 @@ func (z *Subload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if err != nil {
 				return
 			}
+		case "F":
+			var xsz uint32
+			xsz, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			if err != nil {
+				return
+			}
+			if cap(z.F) >= int(xsz) {
+				z.F = z.F[:xsz]
+			} else {
+				z.F = make([]float64, xsz)
+			}
+			for cmr := range z.F {
+				z.F[cmr], bts, err = msgp.ReadFloat64Bytes(bts)
+				if err != nil {
+					return
+				}
+			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -391,7 +460,7 @@ func (z *Subload) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-func (z Subload) Msgsize() (s int) {
-	s = 1 + 2 + msgp.StringPrefixSize + len(z.A) + 2 + msgp.IntSize
+func (z *Subload) Msgsize() (s int) {
+	s = 1 + 2 + msgp.StringPrefixSize + len(z.A) + 2 + msgp.IntSize + 2 + msgp.ArrayHeaderSize + (len(z.F) * (msgp.Float64Size))
 	return
 }
