@@ -585,7 +585,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 	switch val := r.(type) {
 	case string:
 		fmt.Printf("depth %d found string case: val = %#v\n", depth, val)
-		return C.Rf_mkChar(C.CString(val))
+		return C.Rf_mkString(C.CString(val))
 
 	case int:
 		fmt.Printf("depth %d found int case: val = %#v\n", depth, val)
@@ -615,7 +615,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 			C.SET_VECTOR_ELT(s, C.R_xlen_t(i), ele)
 			C.Rf_unprotect(1) // unprotect for ele, now that it is safely inside s.
 
-			ksexpString := C.Rf_mkChar(C.CString(k))
+			ksexpString := C.Rf_mkString(C.CString(k))
 			C.SET_VECTOR_ELT(names, C.R_xlen_t(i), ksexpString)
 			i++
 		}
