@@ -46,3 +46,4 @@ test_that("from.msgpack restores the same structures that to.msgpack encoded -- 
 test_that("from.msgpack restores the same structures that to.msgpack encoded -- *not* allowing variation in ordering of list/struct entries", {
   expect_equal(restored, input)
 })
+
