@@ -431,6 +431,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 				ptrNumSlice := unsafe.Pointer(C.REAL(numSlice))
 				var ui uintptr
 				var rhs C.double
+				fmt.Printf("n = %d, rmax = %d, n > rmax = %v\n", n, rmax, n > rmax)
 				for i := range val {
 					n := val[i].(int64)
 					if n < rmin || n > rmax {

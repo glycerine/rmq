@@ -9,3 +9,4 @@ SystemRequirements: golang 1.5.1 or later.
 URL: https://github.com/glycerine/rmq
 BugReports: https://github.com/glycerine/rmq/issues
 Packaged: 2015-01-23 09:23:28 UTC; jaten
+Suggests: testthat
