@@ -2,15 +2,19 @@
 
 ### Or: How to utilize Go libraries from R.
 
+The much anticipated Go 1.5 release brought strong support for building C-style shared libraries (.so files) from Go source code and libraries. 
+
+*This is huge*. It opens up many exciting new possibilities. In this proof-of-concept project (rmq), we explore using this new capability to extend R with Go libraries.
+
 Package rmq provides messaging based on msgpack and websockets. It demonstrates calling from R into Golang (Go) libraries to extend R with functionality available in Go.
 
  We use the Go library https://github.com/ugorji/go codec for msgpack encoding and decoding. This is a high performance implementation. We use it in a mode where it only supports the updated msgpack 2 (current) spec.
 
-For websockets, we use the terrific https://github.com/gorilla/websocket library.
+For websockets, we use the terrific https://github.com/gorilla/websocket library. As time permits in the future, we'll extend this proof of concept into a more integrated messaging system.
 
 ##Status
 
-The msgpack portion is solid and tested. The websocket portion is there, but is just a proof of concept without much polish (yet). Integration between the two is still todo.
+Proof of concept. A weekend sprint worth of work was done. The msgpack portion is solid and tested. The websocket portion is there, but is just a proof of concept without much polish (yet). Integration between the two is still todo.
 
 ## example R session, showing the msgpack library at work
 
