@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"sort"
 	"unsafe"
 
 	//codec "github.com/glycerine/ugorji-go-codec"
@@ -513,17 +514,16 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		C.Rf_protect(names)
 
 		VPrintf("depth %d found map[string]interface case: val = %#v\n", depth, val)
-		i := 0
-		for k, v := range val {
+		sortedMapKey, sortedMapVal := makeSortedSlicesFromMap(val)
+		for i := range sortedMapKey {
 
-			ele := decodeHelper(v, depth+1)
+			ele := decodeHelper(sortedMapVal[i], depth+1)
 			C.Rf_protect(ele)
 			C.SET_VECTOR_ELT(s, C.R_xlen_t(i), ele)
 			C.Rf_unprotect(1) // unprotect for ele, now that it is safely inside s.
 
-			ksexpString := C.Rf_mkString(C.CString(k))
+			ksexpString := C.Rf_mkString(C.CString(sortedMapKey[i]))
 			C.SET_VECTOR_ELT(names, C.R_xlen_t(i), ksexpString)
-			i++
 		}
 		C.setAttrib(s, C.R_NamesSymbol, names)
 		C.Rf_unprotect(1) // unprotect for names, now that it is attached to s.
@@ -722,4 +722,32 @@ func toIface(s C.SEXP) interface{} {
 	VPrintf("... warning: encodeRIntoMsgpack() ignoring this input.\n")
 
 	return nil
+}
+
+//msgp:ignore mapsorter KiSlice
+
+type mapsorter struct {
+	key   string
+	iface interface{}
+}
+
+type KiSlice []*mapsorter
+
+func (a KiSlice) Len() int           { return len(a) }
+func (a KiSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a KiSlice) Less(i, j int) bool { return a[i].key < a[j].key }
+
+func makeSortedSlicesFromMap(m map[string]interface{}) ([]string, []interface{}) {
+	key := make([]string, len(m))
+	val := make([]interface{}, len(m))
+	so := make(KiSlice, 0)
+	for k, i := range m {
+		so = append(so, &mapsorter{key: k, iface: i})
+	}
+	sort.Sort(so)
+	for i := range so {
+		key[i] = so[i].key
+		val[i] = so[i].iface
+	}
+	return key, val
 }
