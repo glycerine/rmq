@@ -8,6 +8,8 @@ Package rmq provides messaging based on msgpack and websockets. It demonstrates 
 
 For websockets, we use the terrific https://github.com/gorilla/websocket library.
 
+Status: the msgpack portion is solid and tested. The websocket portion is there, but is just a proof of concept without much polish (yet). Integration between is still todo.
+
 Copyright 2015 Jason E. Aten, Ph.D.
 
 License: Apache 2.0. Individual vendored components include their own licenses, which may differ.
