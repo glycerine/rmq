@@ -43,6 +43,6 @@ $E
 
 Copyright 2015 Jason E. Aten, Ph.D.
 
-License: Apache 2.0 for the top level glue code and integration. Individual vendored library components include their own licenses, which differ and impose their own requirements.
+License: Apache 2.0 for the top level RMQ code and integration. Individual vendored library components include their own licenses which are Apache2, MIT, or BSD style. See the src/vendor subdirectories for details.
 
 Requires: Go 1.5.1 for GO15VENDOREXPERIMENT=1
