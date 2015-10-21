@@ -1,6 +1,0 @@
-# pack-refs with: peeled fully-peeled 
-89582b28c120fbba8e913a5085a77800308d5378 refs/remotes/origin/caplit
-6263822c9f8c3e3f182a97ad9dc1569b4d92c044 refs/remotes/origin/fixjson
-10eef8307c8123ad38779ff3e25f1df98023d131 refs/remotes/origin/get-updates
-eced587318ffac6a693ca5c3ee4fa2f9508c6e8d refs/remotes/origin/master
-22dcf5aa01e78dc44bf44ece842e2a1a1ab5d799 refs/remotes/origin/writefix
