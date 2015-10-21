@@ -17,9 +17,9 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
-	"time"
 	"unsafe"
 
+	//codec "github.com/glycerine/ugorji-go-codec"
 	"github.com/gorilla/websocket"
 	"github.com/ugorji/go/codec"
 )
@@ -294,17 +294,25 @@ func server_main() {
 		},
 		D: []string{"hello", "world"},
 		E: []int32{32, 17},
-		G: []float64{},
+		G: []float64{-10.5},
 	}
 
-	var err error
-	dataBytes, err = data.MarshalMsg(nil)
-	panicOn(err)
+	// we have to fix the encoding we return, as go will
+	// randomize out map ordering access on passing through a map.
+	dataBytes = []byte{0x85, 0xa4, 0x42, 0x6c, 0x6f, 0x62, 0xc4, 0x03, 0xff, 0xf0, 0x06, 0xa1, 0x44, 0x92, 0xa5, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0xa5, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0xa1, 0x45, 0x92, 0xcb, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xcb, 0x40, 0x31, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa1, 0x47, 0x91, 0xcb, 0xc0, 0x25, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa3, 0x53, 0x75, 0x62, 0x83, 0xa1, 0x41, 0x91, 0xa2, 0x68, 0x69, 0xa1, 0x42, 0x91, 0xcb, 0x43, 0xd0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa1, 0x46, 0x92, 0xcb, 0x3f, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xcb, 0x40, 0x0b, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33}
+
+	//	var err error
+	//	dataBytes, err = data.MarshalMsg(nil)
+	//	panicOn(err)
 
 	fmt.Printf("data = %#v\n", data)
+	fmt.Printf("dataBytes = %#v\n", dataBytes)
 
-	http.HandleFunc("/", echo)
-	err = http.ListenAndServe(addr, nil)
+	// create a fresh mux to avoid errors from reuse.
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", echo)
+	server := &http.Server{Addr: addr, Handler: mux}
+	err := server.ListenAndServe()
 	if err != nil {
 		fmt.Println("ListenAndServe: ", err)
 	}
@@ -330,7 +338,7 @@ func (m *MsgpackHelper) init() {
 
 	// configure extensions
 	// e.g. for msgpack, define functions and enable Time support for tag 1
-	m.mh.AddExt(reflect.TypeOf(time.Time{}), 1, timeEncExt, timeDecExt)
+	//does this make a differenece? m.mh.AddExt(reflect.TypeOf(time.Time{}), 1, timeEncExt, timeDecExt)
 	m.mh.RawToString = true
 	m.mh.WriteExt = true
 	m.mh.SignedInteger = true
@@ -340,6 +348,10 @@ func (m *MsgpackHelper) init() {
 }
 
 var h MsgpackHelper
+
+func init() {
+	h.init()
+}
 
 func decodeMsgpackToR(reply []byte) C.SEXP {
 
@@ -351,7 +363,7 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 	panicOn(err)
 
 	VPrintf("decoded type : %T\n", r)
-	VPrintf("decoded value: %v\n", r)
+	VPrintf("decoded value: %#v\n", r)
 
 	s := decodeHelper(r, 0)
 	if s != C.R_NilValue {
@@ -431,9 +443,10 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 				ptrNumSlice := unsafe.Pointer(C.REAL(numSlice))
 				var ui uintptr
 				var rhs C.double
-				fmt.Printf("n = %d, rmax = %d, n > rmax = %v\n", n, rmax, n > rmax)
 				for i := range val {
 					n := val[i].(int64)
+					fmt.Printf("n = %d, rmax = %d, n > rmax = %v\n", n, rmax, n > rmax)
+
 					if n < rmin || n > rmax {
 						naflag = true
 					}
@@ -579,6 +592,8 @@ func encodeRIntoMsgpack(s C.SEXP) []byte {
 	if iface == nil {
 		return []byte{}
 	}
+
+	h.init()
 
 	var w bytes.Buffer
 	enc := codec.NewEncoder(&w, &h.mh)
