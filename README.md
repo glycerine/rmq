@@ -43,4 +43,6 @@ $E
 
 Copyright 2015 Jason E. Aten, Ph.D.
 
-License: Apache 2.0. Individual vendored components include their own licenses, which may differ.
+License: Apache 2.0 for the top level glue code and integration. Individual vendored library components include their own licenses, which differ and impose their own requirements.
+
+Requires: Go 1.5.1 for GO15VENDOREXPERIMENT=1
