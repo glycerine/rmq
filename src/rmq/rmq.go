@@ -1,4 +1,8 @@
-// package name: rmq
+/* package name: rmq
+//
+// Copyright 2015 Jason E. Aten <j.e.aten -a-t- g-m-a-i-l dot c-o-m>
+// License: Apache 2.0
+*/
 package main
 
 /*
@@ -20,17 +24,18 @@ import (
 	"sort"
 	"unsafe"
 
-	//codec "github.com/glycerine/ugorji-go-codec"
 	"github.com/gorilla/websocket"
 	"github.com/ugorji/go/codec"
 )
 
+// inside test struct for checking serialization
 type Subload struct {
 	A string
 	B int
 	F []float64
 }
 
+// outside test struct for checking serialization
 type Payload struct {
 	Sub  Subload
 	D    []string

@@ -31,6 +31,7 @@ clean:
 	find . -name '*~' | xargs rm -f
 	find . -name '*[.]so' | xargs rm -f
 	find . -name '*[.]o' | xargs rm -f
+	find . -name '[.]Rhistory' | xargs rm -f
 	rm -f rmq.h rmq.so _example_main rmq/libinterface.a  *.o example.so example.h
 	rm -f ../bin/*
 	# warning: do not delete vendor.tar.gz here or the 'make check' and 'make build' will fail.
