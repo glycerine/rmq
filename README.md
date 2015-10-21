@@ -10,7 +10,7 @@ For websockets, we use the terrific https://github.com/gorilla/websocket library
 
 ##Status
 
-The msgpack portion is solid and tested. The websocket portion is there, but is just a proof of concept without much polish (yet). Integration between is still todo.
+The msgpack portion is solid and tested. The websocket portion is there, but is just a proof of concept without much polish (yet). Integration between the two is still todo.
 
 ## example R session, showing the msgpack library at work
 
