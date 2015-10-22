@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/signal"
 	"reflect"
 	"sort"
 	"unsafe"
@@ -105,7 +104,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	doneCh := make(chan bool)
 
 	ctrlC_Chan := make(chan os.Signal, 1)
-	signal.Notify(ctrlC_Chan, os.Interrupt)
+	//	signal.Notify(ctrlC_Chan, os.Interrupt)
 
 	webSockHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -155,7 +154,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
 			// make the call, and get a response
 			// put msg into env that handler_ is called with.
-			//C.defineVar(C.install(C.CString("msg")), rawmsg, rho_)
+			C.defineVar(C.install(C.CString("x")), rRequest, rho_)
 			//R_serialize_fun = C.findVar(C.install(C.CString("serialize")), C.R_GlobalEnv)
 			//C.PrintToR(C.CString("listenAndServe: stuffed msg into env rho_.\n"))
 

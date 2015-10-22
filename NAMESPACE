@@ -5,6 +5,7 @@ export(
        cli,
        callcount,
        listenAndServe,
+       rmqcall,
        to.msgpack,
        from.msgpack
        )
