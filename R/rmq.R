@@ -17,7 +17,7 @@ listenAndServe <- function(addr, handler) {
 }
 
 rmqcall <- function(addr, msg) {
-  invisible(.Call("RmqWebsocketCall", addr, msg, PACKAGE="rmq"))
+  .Call("RmqWebsocketCall", addr, msg, PACKAGE="rmq")
 }
 
 

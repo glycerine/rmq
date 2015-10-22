@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"reflect"
 	"sort"
 	"unsafe"
@@ -67,6 +68,11 @@ func getAddr(addr_ C.SEXP) (*net.TCPAddr, error) {
 	return tcpAddr, nil
 }
 
+var upgrader = websocket.Upgrader{} // use default options
+
+// ListenAndServe is the server part that expects calls from client
+// in the form of RmqWebsocketCall() invocations.
+
 //export ListenAndServe
 func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
@@ -91,7 +97,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
 	fmt.Printf("ListenAndServe listening on address '%s'...\n", addr)
 
-	// one problem  when acting as a web server:
+	// Motivation: One problem when acting as a web server is that
 	// webSockHandler will be run on a separate goroutine and this will surely
 	// be a separate thread--distinct from the R callback thread. This is a
 	// problem because if we call back into R from the goroutine thread
@@ -105,8 +111,8 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	reqStopCh := make(chan bool)
 	doneCh := make(chan bool)
 
-	ctrlC_Chan := make(chan os.Signal, 1)
-	//	signal.Notify(ctrlC_Chan, os.Interrupt)
+	ctrlC_Chan := make(chan os.Signal, 5)
+	signal.Notify(ctrlC_Chan, os.Interrupt)
 
 	webSockHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -150,6 +156,8 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	}()
 
 	for {
+		signal.Notify(ctrlC_Chan, os.Interrupt)
+
 		select {
 		case msgpackRequest := <-requestToRCh:
 
@@ -174,6 +182,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			replyFromRCh <- &reply
 
 		case <-ctrlC_Chan:
+			fmt.Printf("\n\n   rmq.goListenAndServe() sees ctrl-c !!\n\n")
 			// ctrl-c pressed, return to user.
 			close(doneCh)
 			return C.R_NilValue
@@ -184,26 +193,6 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			return C.R_NilValue
 		}
 	}
-
-	return C.R_NilValue
-}
-
-//export Srv
-func Srv(str_ C.SEXP) C.SEXP {
-
-	if C.TYPEOF(str_) != C.STRSXP {
-		fmt.Printf("not a STRXSP! instead: %d, argument to rmq() must be a string to be decoded to its integer constant value in the rmq pkg.\n", C.TYPEOF(str_))
-		return C.R_NilValue
-	}
-
-	name := C.R_CHAR(C.STRING_ELT(str_, 0))
-	gname := C.GoString(name)
-	fmt.Printf("rmq says: Hello '%s'!\n", gname)
-
-	//go StartServer()
-	go server_main()
-
-	fmt.Printf("\n  after gorilla webserver launched.\n")
 
 	return C.R_NilValue
 }
@@ -254,7 +243,7 @@ func client_main(addr *net.TCPAddr, msg []byte) []byte {
 
 	var err error
 	u := url.URL{Scheme: "ws", Host: addr.String(), Path: "/"}
-	fmt.Printf("connecting to %s", u.String())
+	VPrintf("connecting to %s", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
@@ -276,80 +265,6 @@ func client_main(addr *net.TCPAddr, msg []byte) []byte {
 	count++
 
 	return replyBytes
-}
-
-// server
-
-var upgrader = websocket.Upgrader{} // use default options
-
-var data Payload
-var dataBytes []byte
-
-func echo(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.Error(w, "Not found", 404)
-		return
-	}
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed, only GET allowed.", 405)
-		return
-	}
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		fmt.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
-	for {
-		mt, message, err := c.ReadMessage()
-		if err != nil {
-			fmt.Println("read error: ", err)
-			break
-		}
-		if false {
-			fmt.Printf("recv: %s\n", message)
-		}
-		err = c.WriteMessage(mt, dataBytes)
-		if err != nil {
-			fmt.Println("write error: ", err)
-			break
-		}
-	}
-}
-
-func server_main() {
-
-	data = Payload{
-		Blob: []byte{0xff, 0xf0, 0x06},
-		Sub: Subload{
-			A: "hi",
-			B: 4611686018427387904,
-			F: []float64{1.5, 3.4},
-		},
-		D: []string{"hello", "world"},
-		E: []int32{32, 17},
-		G: []float64{-10.5},
-	}
-
-	// we have to fix the encoding we return, as go will
-	// randomize out map ordering access on passing through a map.
-	dataBytes = []byte{0x85, 0xa4, 0x42, 0x6c, 0x6f, 0x62, 0xc4, 0x03, 0xff, 0xf0, 0x06, 0xa1, 0x44, 0x92, 0xa5, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0xa5, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0xa1, 0x45, 0x92, 0xcb, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xcb, 0x40, 0x31, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa1, 0x47, 0x91, 0xcb, 0xc0, 0x25, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa3, 0x53, 0x75, 0x62, 0x83, 0xa1, 0x41, 0x91, 0xa2, 0x68, 0x69, 0xa1, 0x42, 0x91, 0xcb, 0x43, 0xd0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xa1, 0x46, 0x92, 0xcb, 0x3f, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xcb, 0x40, 0x0b, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33}
-
-	//	var err error
-	//	dataBytes, err = data.MarshalMsg(nil)
-	//	panicOn(err)
-
-	fmt.Printf("data = %#v\n", data)
-	fmt.Printf("dataBytes = %#v\n", dataBytes)
-
-	// create a fresh mux to avoid errors from reuse.
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", echo)
-	server := &http.Server{Addr: DefaultAddr, Handler: mux}
-	err := server.ListenAndServe()
-	if err != nil {
-		fmt.Println("ListenAndServe: ", err)
-	}
 }
 
 func panicOn(err error) {
