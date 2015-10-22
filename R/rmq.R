@@ -8,10 +8,6 @@ srv <- function(x) {
     .Call("Srv", x, PACKAGE="rmq")
 }
 
-cli <- function(x) {
-    .Call("Cli", x, PACKAGE="rmq")
-}
-
 callcount <- function() {
     .Call("Callcount", PACKAGE="rmq")
 }

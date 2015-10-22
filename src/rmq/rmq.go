@@ -27,6 +27,7 @@ import (
 	"unsafe"
 
 	"github.com/gorilla/websocket"
+	"github.com/shurcooL/go-goon"
 	"github.com/ugorji/go/codec"
 )
 
@@ -77,7 +78,6 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 		return C.R_NilValue
 	}
 
-	//msglen := 0
 	if 0 == int(C.isFunction(handler_)) { // 0 is false
 		C.ReportErrorToR_NoReturn(C.CString("‘handler’ must be a function"))
 		return C.R_NilValue
@@ -92,9 +92,12 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
 	fmt.Printf("ListenAndServe listening on address '%s'...\n", addr)
 
-	// one problem, and its solution, when acting as a web server:
+	// one problem  when acting as a web server:
 	// webSockHandler will be run on a separate goroutine and this will surely
-	// be a separate thread--distinct from the R callback thread. This is a problem.
+	// be a separate thread--distinct from the R callback thread. This is a
+	// problem because if we call back into R from the goroutine thread
+	// instead of R's thread, R will see the small stack and freak out.
+	//
 	// So: we'll use a channel to send the request to the main C/R thread
 	// for call back into R. The *[]byte passed on these channels represent
 	// msgpack serialized R objects.
@@ -111,10 +114,16 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			http.Error(w, "Not found", 404)
 			return
 		}
+
+		fmt.Printf("\n\n  webSockHandler() sees request r = \n")
+		goon.Dump(r)
+		fmt.Printf("\n\n")
+
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed, only GET allowed.", 405)
 			return
 		}
+
 		c, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			fmt.Print("websocket handler upgrade error:", err)
@@ -122,7 +131,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 		}
 		defer c.Close()
 
-		mt, message, err := c.ReadMessage()
+		_, message, err := c.ReadMessage()
 		if err != nil {
 			fmt.Println("read error: ", err)
 			return
@@ -131,7 +140,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 		requestToRCh <- &message
 		reply := <-replyFromRCh
 
-		err = c.WriteMessage(mt, *reply)
+		err = c.WriteMessage(websocket.BinaryMessage, *reply)
 		if err != nil {
 			fmt.Println("write error: ", err)
 		}
@@ -152,30 +161,17 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			rRequest := decodeMsgpackToR(*msgpackRequest)
 			C.Rf_protect(rRequest)
 
-			// make the call, and get a response
-			// put msg into env that handler_ is called with.
-			//myArg := C.install(C.CString("x"))
-			//C.Rf_protect(myArg)
-			//C.defineVar(myArg, rRequest, rho_)
-			//R_serialize_fun = C.findVar(C.install(C.CString("serialize")), C.R_GlobalEnv)
-			//C.PrintToR(C.CString("listenAndServe: stuffed msg into env rho_.\n"))
-
-			// evaluate
-			//R_fcall := C.lang3(handler_, rRequest, C.R_NilValue)
-			//R_fcall := C.lang3(handler_, myArg, C.R_NilValue)
-			R_fcall := C.lang2(handler_, rRequest) // or try myArg if this doesn't work.
+			// Call into the R handler_ function, and get its reply.
+			R_fcall := C.lang2(handler_, rRequest)
 			C.Rf_protect(R_fcall)
 			C.PrintToR(C.CString("listenAndServe: got msg, just prior to eval.\n"))
 			evalres := C.eval(R_fcall, rho_)
 			C.Rf_protect(evalres)
 			C.PrintToR(C.CString("listenAndServe: after eval.\n"))
 
-			// send back the reply
-
-			// convert reply to msgpack
+			// send back the reply, first converting to msgpack
 			reply := encodeRIntoMsgpack(evalres)
 			C.Rf_unprotect(3)
-
 			replyFromRCh <- &reply
 
 		case <-ctrlC_Chan:
@@ -213,34 +209,8 @@ func Srv(str_ C.SEXP) C.SEXP {
 	return C.R_NilValue
 }
 
-/*
-//export Cli
-func Cli(str_ C.SEXP) C.SEXP {
-
-	if C.TYPEOF(str_) != C.STRSXP {
-		fmt.Printf("not a STRXSP! instead: %d, argument to rmq() must be a string to be decoded to its integer constant value in the rmq pkg.\n", C.TYPEOF(str_))
-		return C.R_NilValue
-	}
-
-	name := C.R_CHAR(C.STRING_ELT(str_, 0))
-	msg := C.GoString(name)
-
-	//fmt.Printf("rmq says: client sees '%s'.\n", msg)
-
-	reply := client_main([]byte(msg))
-
-	VPrintf("rmq says: after client_main().\n")
-
-	if len(reply) == 0 {
-		return C.R_NilValue
-	}
-
-	if len(reply) > 0 {
-		return decodeMsgpackToR(reply)
-	}
-	return C.R_NilValue
-}
-*/
+// RmqWebsocketCall() is the client part that talks to
+// the server part waiting in ListenAndServe().
 
 //export RmqWebsocketCall
 func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP) C.SEXP {
@@ -296,7 +266,7 @@ func client_main(addr *net.TCPAddr, msg []byte) []byte {
 		}
 	}
 
-	err = c.WriteMessage(websocket.TextMessage, msg)
+	err = c.WriteMessage(websocket.BinaryMessage, msg)
 	if err != nil {
 		fmt.Println("write err:", err)
 	}
