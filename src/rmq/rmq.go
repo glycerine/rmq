@@ -27,7 +27,6 @@ import (
 	"unsafe"
 
 	"github.com/gorilla/websocket"
-	"github.com/shurcooL/go-goon"
 	"github.com/ugorji/go/codec"
 )
 
@@ -115,10 +114,6 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			return
 		}
 
-		fmt.Printf("\n\n  webSockHandler() sees request r = \n")
-		goon.Dump(r)
-		fmt.Printf("\n\n")
-
 		if r.Method != "GET" {
 			http.Error(w, "Method not allowed, only GET allowed.", 405)
 			return
@@ -164,10 +159,14 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			// Call into the R handler_ function, and get its reply.
 			R_fcall := C.lang2(handler_, rRequest)
 			C.Rf_protect(R_fcall)
-			C.PrintToR(C.CString("listenAndServe: got msg, just prior to eval.\n"))
+			if Verbose {
+				C.PrintToR(C.CString("listenAndServe: got msg, just prior to eval.\n"))
+			}
 			evalres := C.eval(R_fcall, rho_)
 			C.Rf_protect(evalres)
-			C.PrintToR(C.CString("listenAndServe: after eval.\n"))
+			if Verbose {
+				C.PrintToR(C.CString("listenAndServe: after eval.\n"))
+			}
 
 			// send back the reply, first converting to msgpack
 			reply := encodeRIntoMsgpack(evalres)
@@ -225,6 +224,7 @@ func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP) C.SEXP {
 	// marshall msg_ into msgpack []byte
 	msgpackRequest := encodeRIntoMsgpack(msg_)
 
+	VPrintf("rmq says: before client_main().\n")
 	reply := client_main(addr, msgpackRequest)
 	VPrintf("rmq says: after client_main().\n")
 
@@ -248,23 +248,21 @@ func main() {
 	// CGO compiler to compile the package as C shared library
 }
 
-var c *websocket.Conn
 var count int
 
 func client_main(addr *net.TCPAddr, msg []byte) []byte {
 
 	var err error
-	if c == nil {
-		u := url.URL{Scheme: "ws", Host: addr.String(), Path: "/"}
-		fmt.Printf("connecting to %s", u.String())
+	u := url.URL{Scheme: "ws", Host: addr.String(), Path: "/"}
+	fmt.Printf("connecting to %s", u.String())
 
-		c, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
-		if err != nil {
-			fmt.Println("dial error:", err)
-			c = nil
-			return []byte{}
-		}
+	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		fmt.Println("dial error:", err)
+		c = nil
+		return []byte{}
 	}
+	defer c.Close()
 
 	err = c.WriteMessage(websocket.BinaryMessage, msg)
 	if err != nil {
@@ -274,10 +272,6 @@ func client_main(addr *net.TCPAddr, msg []byte) []byte {
 	_, replyBytes, err := c.ReadMessage()
 	if err != nil {
 		fmt.Println("read err:", err)
-	}
-	if false {
-		// debug
-		fmt.Printf("recv: %s\n", replyBytes)
 	}
 	count++
 
