@@ -6,7 +6,7 @@
 package main
 
 /*
-#cgo LDFLAGS: -lR ${SRCDIR}/libinterface.a
+#cgo LDFLAGS: -L/usr/local/lib64/R/lib -lm -lR ${SRCDIR}/libinterface.a
 #cgo CFLAGS: -I${SRCDIR}/../include
 #include <string.h>
 #include "interface.h"
