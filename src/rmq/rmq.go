@@ -25,6 +25,7 @@ import (
 	"os/signal"
 	"reflect"
 	"sort"
+	"time"
 	"unsafe"
 
 	"github.com/gorilla/websocket"
@@ -112,7 +113,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	doneCh := make(chan bool)
 
 	ctrlC_Chan := make(chan os.Signal, 5)
-	signal.Notify(ctrlC_Chan, os.Interrupt)
+	//signal.Notify(ctrlC_Chan, os.Interrupt)
 
 	webSockHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -156,7 +157,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	}()
 
 	for {
-		signal.Notify(ctrlC_Chan, os.Interrupt)
+		//signal.Notify(ctrlC_Chan, os.Interrupt)
 
 		select {
 		case msgpackRequest := <-requestToRCh:
@@ -180,6 +181,10 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			reply := encodeRIntoMsgpack(evalres)
 			C.Rf_unprotect(3)
 			replyFromRCh <- &reply
+
+		case <-time.After(time.Second):
+			// ask R to check for interrupts
+			C.R_CheckUserInterrupt()
 
 		case <-ctrlC_Chan:
 			fmt.Printf("\n\n   rmq.goListenAndServe() sees ctrl-c !!\n\n")
@@ -235,6 +240,8 @@ func Callcount() C.SEXP {
 func main() {
 	// We need the main function to make possible
 	// CGO compiler to compile the package as C shared library
+	// The 'import "C"' at the top of the file is also required
+	// in order to export functions marked with //export
 }
 
 var count int
@@ -698,4 +705,27 @@ func makeSortedSlicesFromMap(m map[string]interface{}) ([]string, []interface{})
 		val[i] = so[i].iface
 	}
 	return key, val
+}
+
+// BlockInSelect lets us test the ctrl-c SIGINT handling
+
+//export BlockInSelect
+func BlockInSelect() C.SEXP {
+
+	ctrlC_Chan := make(chan os.Signal, 5)
+	signal.Notify(ctrlC_Chan, os.Interrupt)
+
+	count := 0
+	for {
+		select {
+		case <-ctrlC_Chan:
+			fmt.Printf("\n\n  I see ctrl-c !!\n\n")
+		}
+		count++
+		if count >= 2 {
+			return C.R_NilValue
+		}
+	}
+
+	return C.R_NilValue
 }

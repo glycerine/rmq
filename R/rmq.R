@@ -28,3 +28,7 @@ to.msgpack <- function(x) {
 from.msgpack <- function(x) {
   .Call("FromMsgpack", x)
 }
+
+block <- function() {
+  .Call("BlockInSelect", PACKAGE="rmq")
+}

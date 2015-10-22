@@ -1,6 +1,7 @@
 useDynLib(rmq)
 
 export(
+       block,
        callcount,
        listenAndServe,
        rmqcall,
