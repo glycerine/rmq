@@ -189,6 +189,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			fmt.Printf("\n\n   rmq.goListenAndServe() sees ctrl-c !!\n\n")
 			// ctrl-c pressed, return to user.
 			signal.Stop(ctrlC_Chan)
+			fmt.Printf("\n\n  asking webserver to Stop...\n\n")
 			server.Stop()
 			close(doneCh)
 			return C.R_NilValue

@@ -20,7 +20,7 @@ type WebServer struct {
 	started     bool
 }
 
-func NewWebServer(addr string, mux *http.ServerMux) *WebServer {
+func NewWebServer(addr string, mux *http.ServeMux) *WebServer {
 
 	if addr == "" {
 		// get an available port
