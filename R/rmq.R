@@ -17,8 +17,13 @@ callcount <- function() {
 }
 
 listenAndServe <- function(addr, handler) {
-  invisible(.Call("ListenAndServe", addr, handler, new.env()))
+  invisible(.Call("ListenAndServe", addr, handler, new.env(), PACKAGE="rmq"))
 }
+
+rmqcall <- function(addr, msg) {
+  invisible(.Call("RmqWebsocketCall", addr, msg, PACKAGE="rmq"))
+}
+
 
 to.msgpack <- function(x) {
   .Call("ToMsgpack", x)

@@ -51,10 +51,10 @@ SEXP rmq(SEXP str_) {
   return ans;
 }
 
-  int JasonsLinkeMe() {
-    printf("\n\n 88888 JasonsLinkeMe called!\n\n");
-    return 7777;
-  }
+  //  int JasonsLinkeMe() {
+  //    printf("\n\n 88888 JasonsLinkeMe called!\n\n");
+  //    return 7777;
+  //  }
 
   void ReportErrorToR_NoReturn(const char* msg) {
     Rf_error(msg);
@@ -84,6 +84,22 @@ SEXP rmq(SEXP str_) {
   int get_int_elt(SEXP x, int i) {
     return INTEGER(x)[i];
   }
+
+
+
+  SEXP CallbackToHandler(SEXP handler_, SEXP arg_, SEXP rho_) {
+    SEXP evalres;
+    
+    SEXP R_fcall, msg;
+    if(!isFunction(handler_)) error("‘handler’ must be a function");
+    if(!isEnvironment(rho_)) error("‘rho’ should be an environment. e.g. new.env()");
+    
+    PROTECT(R_fcall = lang2(handler_, arg_));
+    PROTECT(evalres = eval(R_fcall, rho_));
+    UNPROTECT(2);
+    return evalres;
+  }
+  
 
 #ifdef __cplusplus
 }

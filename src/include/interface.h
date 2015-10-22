@@ -18,7 +18,7 @@ extern "C" {
 
   SEXP rmq(SEXP name_);
   
-  int JasonsLinkeMe();
+  //  int JasonsLinkeMe();
   
   void ReportErrorToR_NoReturn(const char* msg);
 

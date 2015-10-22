@@ -18,8 +18,11 @@ import "C"
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"reflect"
 	"sort"
 	"unsafe"
@@ -44,15 +47,34 @@ type Payload struct {
 	Blob []byte
 }
 
-var addr = "localhost:8081"
+var DefaultAddr = "localhost:8081"
 
 var R_serialize_fun C.SEXP
+
+func getAddr(addr_ C.SEXP) (*net.TCPAddr, error) {
+
+	if C.TYPEOF(addr_) != C.STRSXP {
+		fmt.Printf("addr is not a string (STRXSP; instead it is: %d)! addr argument to ListenAndServe() must be a string of form 'ip:port'\n", C.TYPEOF(addr_))
+		return nil, fmt.Errorf("addr is not string type")
+	}
+
+	caddr := C.R_CHAR(C.STRING_ELT(addr_, 0))
+	addr := C.GoString(caddr)
+
+	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
+	if err != nil || tcpAddr == nil {
+		return nil, fmt.Errorf("getAddr() error: address '%s' could not be parsed by net.ResolveTCPAddr(): error: '%s'", addr, err)
+	}
+	return tcpAddr, nil
+}
 
 //export ListenAndServe
 func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
-	if C.TYPEOF(addr_) != C.STRSXP {
-		fmt.Printf("addr is not a string (STRXSP; instead it is: %d)! addr argument to ListenAndServe() must be a string of form 'ip:port'\n", C.TYPEOF(addr_))
+	addr, err := getAddr(addr_)
+
+	if err != nil {
+		C.ReportErrorToR_NoReturn(C.CString(err.Error()))
 		return C.R_NilValue
 	}
 
@@ -69,9 +91,21 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 		}
 	}
 
-	caddr := C.R_CHAR(C.STRING_ELT(addr_, 0))
-	addr := C.GoString(caddr)
 	fmt.Printf("ListenAndServe listening on address '%s'...\n", addr)
+
+	// one problem, and its solution, when acting as a web server:
+	// webSockHandler will be run on a separate goroutine and this will surely
+	// be a separate thread--distinct from the R callback thread. This is a problem.
+	// So: we'll use a channel to send the request to the main C/R thread
+	// for call back into R. The *[]byte passed on these channels represent
+	// msgpack serialized R objects.
+	requestToRCh := make(chan *[]byte)
+	replyFromRCh := make(chan *[]byte)
+	reqStopCh := make(chan bool)
+	doneCh := make(chan bool)
+
+	ctrlC_Chan := make(chan os.Signal, 1)
+	signal.Notify(ctrlC_Chan, os.Interrupt)
 
 	webSockHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -95,63 +129,62 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			return
 		}
 
-		// make the call, and get a response
-		msglen := len(message)
-		rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(msglen))
-		C.Rf_protect(rawmsg)
-		C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&message[0]), C.size_t(msglen))
+		requestToRCh <- &message
+		reply := <-replyFromRCh
 
-		// put msg into env that handler_ is called with.
-		C.defineVar(C.install(C.CString("msg")), rawmsg, rho_)
-
-		R_serialize_fun = C.findVar(C.install(C.CString("serialize")), C.R_GlobalEnv)
-
-		// todo: callbacks to R functions here not working. don't really need them if R always acts as a client instead.
-
-		// evaluate
-		C.PrintToR(C.CString("listenAndServe: stuffed msg into env rho_.\n"))
-		//R_fcall := C.lang3(handler_, rawmsg, C.R_NilValue)
-		R_fcall := C.lang3(R_serialize_fun, rawmsg, C.R_NilValue)
-		C.Rf_protect(R_fcall)
-		C.PrintToR(C.CString("listenAndServe: got msg, just prior to eval.\n"))
-		evalres := C.eval(R_fcall, rho_)
-		C.Rf_protect(evalres)
-
-		C.PrintToR(C.CString("listenAndServe: after eval.\n"))
-		/*
-			var s, t C.SEXP
-			s = C.allocList(3)
-			t = s
-			C.Rf_protect(t)
-			C.SetTypeToLANGSXP(&s)
-			//C.SETCAR(t, R_fcall)
-			C.SETCAR(t, handler_)
-			t = C.CDR(t)
-			C.SETCAR(t, rawmsg)
-
-			evalres := C.eval(s, rho_)
-			C.Rf_protect(evalres)
-		*/
-		C.PrintToR(C.CString("nnListenAndServe: done with eval.\n"))
-
-		if C.TYPEOF(evalres) != C.RAWSXP {
-			fmt.Printf("rats! handler result was not RAWSXP raw bytes!\n")
-		} else {
-
-			//fmt.Printf("recv: %s\n", message)
-			err = c.WriteMessage(mt, message)
-			if err != nil {
-				fmt.Println("write error: ", err)
-			}
+		err = c.WriteMessage(mt, *reply)
+		if err != nil {
+			fmt.Println("write error: ", err)
 		}
-		C.Rf_unprotect(3)
-
-	} // end handler func
+	} // end webSockHandler
 
 	http.HandleFunc("/", webSockHandler)
-	err := http.ListenAndServe(addr, nil)
-	if err != nil {
-		fmt.Println("ListenAndServe: ", err)
+	go func() {
+		err := http.ListenAndServe(addr.String(), nil)
+		if err != nil {
+			fmt.Println("ListenAndServe error: ", err)
+		}
+	}()
+
+	for {
+		select {
+		case msgpackRequest := <-requestToRCh:
+
+			rRequest := decodeMsgpackToR(*msgpackRequest)
+			C.Rf_protect(rRequest)
+
+			// make the call, and get a response
+			// put msg into env that handler_ is called with.
+			//C.defineVar(C.install(C.CString("msg")), rawmsg, rho_)
+			//R_serialize_fun = C.findVar(C.install(C.CString("serialize")), C.R_GlobalEnv)
+			//C.PrintToR(C.CString("listenAndServe: stuffed msg into env rho_.\n"))
+
+			// evaluate
+			R_fcall := C.lang3(handler_, rRequest, C.R_NilValue)
+			C.Rf_protect(R_fcall)
+			C.PrintToR(C.CString("listenAndServe: got msg, just prior to eval.\n"))
+			evalres := C.eval(R_fcall, rho_)
+			C.Rf_protect(evalres)
+			C.PrintToR(C.CString("listenAndServe: after eval.\n"))
+
+			// send back the reply
+
+			// convert reply to msgpack
+			reply := encodeRIntoMsgpack(evalres)
+			C.Rf_unprotect(3)
+
+			replyFromRCh <- &reply
+
+		case <-ctrlC_Chan:
+			// ctrl-c pressed, return to user.
+			close(doneCh)
+			return C.R_NilValue
+
+		case <-reqStopCh:
+			// possibly fired by ctrl-c? not sure who should close(reqStopCh).
+			close(doneCh)
+			return C.R_NilValue
+		}
 	}
 
 	return C.R_NilValue
@@ -172,11 +205,12 @@ func Srv(str_ C.SEXP) C.SEXP {
 	//go StartServer()
 	go server_main()
 
-	fmt.Printf("\n  after gorilla webserver on '%s' launched.\n", addr)
+	fmt.Printf("\n  after gorilla webserver launched.\n")
 
 	return C.R_NilValue
 }
 
+/*
 //export Cli
 func Cli(str_ C.SEXP) C.SEXP {
 
@@ -203,6 +237,32 @@ func Cli(str_ C.SEXP) C.SEXP {
 	}
 	return C.R_NilValue
 }
+*/
+
+//export RmqWebsocketCall
+func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP) C.SEXP {
+
+	addr, err := getAddr(addr_)
+
+	if err != nil {
+		C.ReportErrorToR_NoReturn(C.CString(err.Error()))
+		return C.R_NilValue
+	}
+
+	// marshall msg_ into msgpack []byte
+	msgpackRequest := encodeRIntoMsgpack(msg_)
+
+	reply := client_main(addr, msgpackRequest)
+	VPrintf("rmq says: after client_main().\n")
+
+	if len(reply) == 0 {
+		return C.R_NilValue
+	}
+	if len(reply) > 0 {
+		return decodeMsgpackToR(reply)
+	}
+	return C.R_NilValue
+}
 
 //export Callcount
 func Callcount() C.SEXP {
@@ -218,11 +278,11 @@ func main() {
 var c *websocket.Conn
 var count int
 
-func client_main(msg []byte) []byte {
+func client_main(addr *net.TCPAddr, msg []byte) []byte {
 
 	var err error
 	if c == nil {
-		u := url.URL{Scheme: "ws", Host: addr, Path: "/"}
+		u := url.URL{Scheme: "ws", Host: addr.String(), Path: "/"}
 		fmt.Printf("connecting to %s", u.String())
 
 		c, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
@@ -238,16 +298,17 @@ func client_main(msg []byte) []byte {
 		fmt.Println("write err:", err)
 	}
 
-	_, message, err := c.ReadMessage()
+	_, replyBytes, err := c.ReadMessage()
 	if err != nil {
 		fmt.Println("read err:", err)
 	}
 	if false {
-		fmt.Printf("recv: %s\n", message)
+		// debug
+		fmt.Printf("recv: %s\n", replyBytes)
 	}
 	count++
 
-	return message
+	return replyBytes
 }
 
 // server
@@ -317,7 +378,7 @@ func server_main() {
 	// create a fresh mux to avoid errors from reuse.
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", echo)
-	server := &http.Server{Addr: addr, Handler: mux}
+	server := &http.Server{Addr: DefaultAddr, Handler: mux}
 	err := server.ListenAndServe()
 	if err != nil {
 		fmt.Println("ListenAndServe: ", err)
