@@ -1,8 +1,6 @@
 useDynLib(rmq)
 
 export(
-       srv,
-       cli,
        callcount,
        listenAndServe,
        rmqcall,
