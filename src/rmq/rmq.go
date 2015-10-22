@@ -154,12 +154,16 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
 			// make the call, and get a response
 			// put msg into env that handler_ is called with.
-			C.defineVar(C.install(C.CString("x")), rRequest, rho_)
+			//myArg := C.install(C.CString("x"))
+			//C.Rf_protect(myArg)
+			//C.defineVar(myArg, rRequest, rho_)
 			//R_serialize_fun = C.findVar(C.install(C.CString("serialize")), C.R_GlobalEnv)
 			//C.PrintToR(C.CString("listenAndServe: stuffed msg into env rho_.\n"))
 
 			// evaluate
-			R_fcall := C.lang3(handler_, rRequest, C.R_NilValue)
+			//R_fcall := C.lang3(handler_, rRequest, C.R_NilValue)
+			//R_fcall := C.lang3(handler_, myArg, C.R_NilValue)
+			R_fcall := C.lang2(handler_, rRequest) // or try myArg if this doesn't work.
 			C.Rf_protect(R_fcall)
 			C.PrintToR(C.CString("listenAndServe: got msg, just prior to eval.\n"))
 			evalres := C.eval(R_fcall, rho_)
