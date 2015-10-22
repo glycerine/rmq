@@ -25,7 +25,6 @@ import (
 	"os/signal"
 	"reflect"
 	"sort"
-	"time"
 	"unsafe"
 
 	"github.com/gorilla/websocket"
@@ -113,7 +112,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	doneCh := make(chan bool)
 
 	ctrlC_Chan := make(chan os.Signal, 5)
-	//signal.Notify(ctrlC_Chan, os.Interrupt)
+	signal.Notify(ctrlC_Chan, os.Interrupt)
 
 	webSockHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -148,13 +147,13 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 		}
 	} // end webSockHandler
 
-	http.HandleFunc("/", webSockHandler)
-	go func() {
-		err := http.ListenAndServe(addr.String(), nil)
-		if err != nil {
-			fmt.Println("ListenAndServe error: ", err)
-		}
-	}()
+	// start a new server, to avoid registration issues with
+	// the default http library mux/server which may be in use
+	// already for other purposes.
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", webSockHandler)
+	server := NewWebServer(addr.String(), mux)
+	server.Start()
 
 	for {
 		//signal.Notify(ctrlC_Chan, os.Interrupt)
@@ -182,13 +181,15 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			C.Rf_unprotect(3)
 			replyFromRCh <- &reply
 
-		case <-time.After(time.Second):
-			// ask R to check for interrupts
-			C.R_CheckUserInterrupt()
+			//		case <-time.After(time.Second):
+			//			// ask R to check for interrupts
+			//			C.R_CheckUserInterrupt()
 
 		case <-ctrlC_Chan:
 			fmt.Printf("\n\n   rmq.goListenAndServe() sees ctrl-c !!\n\n")
 			// ctrl-c pressed, return to user.
+			signal.Stop(ctrlC_Chan)
+			server.Stop()
 			close(doneCh)
 			return C.R_NilValue
 
@@ -715,6 +716,7 @@ func BlockInSelect() C.SEXP {
 	ctrlC_Chan := make(chan os.Signal, 5)
 	signal.Notify(ctrlC_Chan, os.Interrupt)
 
+	fmt.Printf("\n\n BlockInSelect() is waiting for 2x ctrl-c...\n\n")
 	count := 0
 	for {
 		select {
@@ -723,6 +725,7 @@ func BlockInSelect() C.SEXP {
 		}
 		count++
 		if count >= 2 {
+			signal.Stop(ctrlC_Chan)
 			return C.R_NilValue
 		}
 	}
