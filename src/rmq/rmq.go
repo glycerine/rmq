@@ -95,6 +95,9 @@ var upgrader = websocket.Upgrader{} // use default options
 //export ListenAndServe
 func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
+	r_sigint_handler := uintptr(C.get_signint_handler())
+	fmt.Printf("curAct for SIGINT is %p  vs previous was %p\n", r_sigint_handler)
+
 	addr, err := getAddr(addr_)
 
 	if err != nil {

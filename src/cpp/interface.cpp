@@ -11,8 +11,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 #include "interface.h"
+
 
 
 
@@ -20,6 +22,21 @@
 extern "C" {
 #endif
 
+struct sigaction starting_act;
+
+void __attribute__ ((constructor)) my_init(void) {
+    sigaction(SIGINT, NULL, &starting_act);
+    printf("   ++ a starts, starting_act.sa_handler = %p\n", starting_act.sa_handler);
+    printf("   constructor my_init for interface.cpp called!\n");
+}
+
+unsigned long int get_signint_handler() {
+    struct sigaction act;
+    sigaction(SIGINT, NULL, &act);    
+    return (long long)(act.sa_handler);
+}
+  
+  
 
 int symbol_string_to_int(const char* s) {
   if (0 == strncmp(s, "hello", 6)) {
