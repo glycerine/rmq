@@ -10,11 +10,16 @@
 #define INTERFACE_HPP
 
 #include <Rinternals.h>
+#include <signal.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+unsigned long int get_signint_handler();
+
+  
+  extern struct sigaction starting_act;
 
   SEXP rmq(SEXP name_);
   
