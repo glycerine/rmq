@@ -9,7 +9,9 @@ package main
 #cgo LDFLAGS: -L/usr/local/lib64/R/lib -lm -lR ${SRCDIR}/libinterface.a
 #cgo CFLAGS: -I${SRCDIR}/../include
 #include <string.h>
+#include <signal.h>
 #include "interface.h"
+extern int R_interrupts_pending;
 */
 import "C"
 
@@ -30,6 +32,23 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/ugorji/go/codec"
 )
+
+/*
+// try to fix the signal handling that cshared lib loading changes
+func init() {
+	sigCtrlC_chan := make(chan os.Signal, 5)
+	signal.Notify(sigCtrlC_chan, os.Interrupt)
+	go func() {
+		for {
+			select {
+			case <-sigCtrlC_chan:
+				// imitate what R's C.handleInterrupt does:
+				C.R_interrupts_pending = 1
+			}
+		}
+	}()
+}
+*/
 
 // inside test struct for checking serialization
 type Subload struct {
@@ -112,7 +131,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	doneCh := make(chan bool)
 
 	ctrlC_Chan := make(chan os.Signal, 5)
-	signal.Notify(ctrlC_Chan, os.Interrupt)
+	//signal.Notify(ctrlC_Chan, os.Interrupt)
 
 	webSockHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -200,8 +219,6 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			return C.R_NilValue
 		}
 	}
-
-	return C.R_NilValue
 }
 
 // RmqWebsocketCall() is the client part that talks to
@@ -715,7 +732,7 @@ func makeSortedSlicesFromMap(m map[string]interface{}) ([]string, []interface{})
 func BlockInSelect() C.SEXP {
 
 	ctrlC_Chan := make(chan os.Signal, 5)
-	signal.Notify(ctrlC_Chan, os.Interrupt)
+	//	signal.Notify(ctrlC_Chan, os.Interrupt)
 
 	fmt.Printf("\n\n BlockInSelect() is waiting for 2x ctrl-c...\n\n")
 	count := 0
@@ -730,6 +747,4 @@ func BlockInSelect() C.SEXP {
 			return C.R_NilValue
 		}
 	}
-
-	return C.R_NilValue
 }

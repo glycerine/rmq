@@ -47,6 +47,7 @@ build:
 	cd ../.. && R CMD build rmq
 
 install:
+	go version
 	tar --exclude dot[.]git -c  -f - vendor |gzip > vendor.tar.gz
 	cd ../.. && R CMD install rmq
 
