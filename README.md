@@ -19,7 +19,9 @@ Excellent. Tested on OSX and Linux. Documentation has been written and is availa
 ## docs
 
 [pdf in R documentation format](https://github.com/glycerine/rmq/blob/master/man/rmq.pdf)
-[godoc API reference](https://godoc.org/)
+
+
+[godoc API reference](https://godoc.org/github.com/glycerine/rmq)
 
 
 ## example R session, showing the msgpack library at work
