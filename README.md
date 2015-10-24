@@ -3,7 +3,7 @@
 
 ## docs
 
-[pdf in R documentation format](https://github.com/glycerine/rmq/blob/master/man/rmq.pdf)
+[pdf in R documentation format](https://github.com/glycerine/rmq/blob/master/rmq.pdf)
 
 [godoc API reference](https://godoc.org/github.com/glycerine/rmq)
 
