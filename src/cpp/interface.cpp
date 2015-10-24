@@ -22,104 +22,63 @@ extern "C" {
 #endif
 
   // called after the ((constructor)) routines.
-void R_init_rmq(DllInfo *info)
-{
-  /* Register routines,
-     allocate resources. */
-  //printf("   R_init_rmq() called\n");
-}
-
+  void R_init_rmq(DllInfo *info)
+  {
+    /* Register routines,
+       allocate resources. */
+    //printf("   R_init_rmq() called\n");
+  }
+  
   // called when R wants to unload.
-void R_unload_rmq(DllInfo *info)
-{
-  /* Release resources. */
-  //printf("   R_unload_rmq() called\n");
-}
+  void R_unload_rmq(DllInfo *info)
+  {
+    /* Release resources. */
+    //printf("   R_unload_rmq() called\n");
+  }
+  
+  struct sigaction starting_act[NSIG];
 
-struct sigaction starting_act[NSIG];
-
-  // the ((constructor)) annotation makes this get
+  // the ((constructor)) annotation makes my_init() get
   // called before the cshared go routine runtime initializes,
   // which is why we manipulate the signal handling table here.
   // 
   // By setting SIGINT to be SIG_IGN, the go runtime won't take
-  // it over. Then we can safely restore the R handler for
-  // for SIGINT once the go runtime as completed initialization.
-  // See the init() function in rmq.go for that logic.
+  // it over. Then we can safely restore the R handlers for
+  // for SIGINT and all other signals once the go runtime as
+  // completed initialization. The go routine won't ever
+  // see any signals, which is good since when embedded as
+  // a cshared library, it still doesn't play nicely with
+  // the host process (https://github.com/golang/go/issues/13034)
+  // as of October 2015/ go1.5.1.
   //
-void __attribute__ ((constructor)) my_init(void) {
-  for (int i = 0; i < NSIG; i++) {
-    sigaction(i, NULL, &starting_act[i]);
-  }
-  //printf("   ++ a starts, starting_act.sa_handler = %p\n", starting_act.sa_handler);
-  //printf("   constructor my_init for interface.cpp called!\n");
-
-    // to avoid go taking over the SIGINT handler, we 
-    // temporarily set SIGINT to SIG_IGN (no handler), which
-    // means that the go runtime initialization in runtime/signal1_unix.go
-    // will leave it alone. Hence we can later re-install the R
-    // SIGINT handler and skip having the go runtime crash on 
-    // them (OSX only; see https://github.com/golang/go/issues/13034)
-    // This means our web server will need to poll R and ask it if
-    // it wants us to return, even when "blocked" waiting on
-    // a socket.
+  // See the init() function in rmq.go for th logic that
+  // restores the signal handlers.
+  //
+  void __attribute__ ((constructor)) my_init(void) {
+    for (int i = 0; i < NSIG; i++) {
+      sigaction(i, NULL, &starting_act[i]);
+    }
     struct sigaction act_with_ignore_sigint;
     act_with_ignore_sigint.sa_handler = SIG_IGN;
     sigaction(SIGINT, &act_with_ignore_sigint, NULL);
-}
+  }
 
   void restore_all_starting_signal_handlers() {
     for (int i = 0; i < NSIG; i++) {
       sigaction(i, &starting_act[i], NULL);
     }
   }
-
-unsigned long int get_starting_signint_handler() {
+  
+  unsigned long int get_starting_signint_handler() {
     return (unsigned long int)(starting_act[SIGINT].sa_handler);
-}
-
-unsigned long int get_signint_handler() {
+  }
+  
+  unsigned long int get_signint_handler() {
     struct sigaction act;
     sigaction(SIGINT, NULL, &act);    
     return (unsigned long int)(act.sa_handler);
-}
-  
-  
-
-int symbol_string_to_int(const char* s) {
-  if (0 == strncmp(s, "hello", 6)) {
-    return 2;
   }
-  if (0==strncmp(s,"world", 6)) {
-    return 43;
-  }
-  return -1000;
-}
-
-SEXP rmq(SEXP str_) {
-  SEXP ans; 
-
-  if(TYPEOF(str_) != STRSXP) {
-    REprintf("argument to rmq() must be a string to be decoded to its integer constant value in the rmq pkg.\n");
-    return R_NilValue;
-  }
-
-  PROTECT(ans = allocVector(INTSXP,1));
-  const char* s = CHAR(STRING_ELT(str_,0));
-  int rc = symbol_string_to_int(s);
-  INTEGER(ans)[0] = rc;
-  UNPROTECT(1);
-  if (rc == -1000) {
-    REprintf("error: could not translate string '%s' to rmq constant.\n", s);
-    return R_NilValue;
-  }
-  return ans;
-}
-
-  //  int JasonsLinkeMe() {
-  //    printf("\n\n 88888 JasonsLinkeMe called!\n\n");
-  //    return 7777;
-  //  }
+    
 
   void ReportErrorToR_NoReturn(const char* msg) {
     Rf_error(msg);
