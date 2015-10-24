@@ -1,6 +1,7 @@
 useDynLib(rmq)
 
 export(
+       default.addr,
        test.server,
        block,
        callcount,
