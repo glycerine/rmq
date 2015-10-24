@@ -36,7 +36,7 @@ void R_unload_rmq(DllInfo *info)
   //printf("   R_unload_rmq() called\n");
 }
 
-struct sigaction starting_act;
+struct sigaction starting_act[NSIG];
 
   // the ((constructor)) annotation makes this get
   // called before the cshared go routine runtime initializes,
@@ -48,9 +48,11 @@ struct sigaction starting_act;
   // See the init() function in rmq.go for that logic.
   //
 void __attribute__ ((constructor)) my_init(void) {
-    sigaction(SIGINT, NULL, &starting_act);
-    //printf("   ++ a starts, starting_act.sa_handler = %p\n", starting_act.sa_handler);
-    //printf("   constructor my_init for interface.cpp called!\n");
+  for (int i = 0; i < NSIG; i++) {
+    sigaction(i, NULL, &starting_act[i]);
+  }
+  //printf("   ++ a starts, starting_act.sa_handler = %p\n", starting_act.sa_handler);
+  //printf("   constructor my_init for interface.cpp called!\n");
 
     // to avoid go taking over the SIGINT handler, we 
     // temporarily set SIGINT to SIG_IGN (no handler), which
@@ -66,12 +68,14 @@ void __attribute__ ((constructor)) my_init(void) {
     sigaction(SIGINT, &act_with_ignore_sigint, NULL);
 }
 
-  void restore_starting_sigint_handler() {
-    sigaction(SIGINT, &starting_act, NULL);
+  void restore_all_starting_signal_handlers() {
+    for (int i = 0; i < NSIG; i++) {
+      sigaction(i, &starting_act[i], NULL);
+    }
   }
 
 unsigned long int get_starting_signint_handler() {
-    return (unsigned long int)(starting_act.sa_handler);
+    return (unsigned long int)(starting_act[SIGINT].sa_handler);
 }
 
 unsigned long int get_signint_handler() {

@@ -35,9 +35,9 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
-// restore R's signal handler for SIGINT
+// restore R's signal handler for SIGINT (and all others)
 func init() {
-	C.restore_starting_sigint_handler()
+	C.restore_all_starting_signal_handlers()
 }
 
 // inside test struct for checking serialization

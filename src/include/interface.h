@@ -22,9 +22,8 @@ extern "C" {
 unsigned long int get_starting_signint_handler();
 unsigned long int get_signint_handler();
 
-  void restore_starting_sigint_handler();
-  
-  extern struct sigaction starting_act;
+  void restore_all_starting_signal_handlers();  
+  extern struct sigaction starting_act[NSIG];
 
   SEXP rmq(SEXP name_);
   
