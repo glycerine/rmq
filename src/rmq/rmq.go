@@ -1,6 +1,6 @@
 /* package name: rmq
 //
-// Copyright 2015 Jason E. Aten <j.e.aten -a-t- g-m-a-i-l dot c-o-m>
+// Copyright 2015 Jason E. Aten <j-dot-e-dot-aten -a-t- g-m-a-i-l dot c-o-m>
 // License: Apache 2.0
 */
 package main
@@ -23,8 +23,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
-	"os/signal"
 	"reflect"
 	"sort"
 	"sync/atomic"
@@ -56,9 +54,9 @@ type Payload struct {
 	Blob []byte
 }
 
-var DefaultAddr = "localhost:8081"
+//var DefaultAddr = "localhost:8081"
 
-var R_serialize_fun C.SEXP
+//var R_serialize_fun C.SEXP
 
 func getAddr(addr_ C.SEXP) (*net.TCPAddr, error) {
 
@@ -91,11 +89,6 @@ var upgrader = websocket.Upgrader{} // use default options
 
 //export ListenAndServe
 func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
-
-	//	orig_r_sigint_handler := uintptr(C.get_starting_signint_handler())
-	//	cur_sigint_handler := uintptr(C.get_signint_handler())
-	//	fmt.Printf("curAct for SIGINT is %p  vs previous was %p\n",
-	//		unsafe.Pointer(cur_sigint_handler), unsafe.Pointer(orig_r_sigint_handler))
 
 	addr, err := getAddr(addr_)
 
@@ -803,27 +796,4 @@ func makeSortedSlicesFromMap(m map[string]interface{}) ([]string, []interface{})
 		val[i] = so[i].iface
 	}
 	return key, val
-}
-
-// BlockInSelect lets us test the ctrl-c SIGINT handling
-
-//export BlockInSelect
-func BlockInSelect() C.SEXP {
-
-	ctrlC_Chan := make(chan os.Signal, 5)
-	//	signal.Notify(ctrlC_Chan, os.Interrupt)
-
-	fmt.Printf("\n\n BlockInSelect() is waiting for 2x ctrl-c...\n\n")
-	count := 0
-	for {
-		select {
-		case <-ctrlC_Chan:
-			fmt.Printf("\n\n  I see ctrl-c !!\n\n")
-		}
-		count++
-		if count >= 2 {
-			signal.Stop(ctrlC_Chan)
-			return C.R_NilValue
-		}
-	}
 }

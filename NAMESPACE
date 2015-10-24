@@ -2,15 +2,10 @@ useDynLib(rmq)
 
 export(
        to.msgpack,
-       from.msgpack,       
-       default.addr,
-       test.server,
-       block,
-       callcount,
-       listenAndServe,
+       from.msgpack,  
+       rmq.server,
        rmq.call,
        r2r.server,
        r2r.call,
-       test.r2r.server,
-       test.r2r.call
+       rmq.default.addr
        )
