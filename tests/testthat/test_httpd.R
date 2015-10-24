@@ -1,3 +1,6 @@
+
+not.run <- function() {
+  
 require(rmq)
 require(testthat)
 
@@ -19,3 +22,5 @@ r = .Call("ListenAndServe", "127.0.0.1:9090", handler, new.env(), package="rmq")
 require(rmq)
 options(error=recover)
 res=rmqcall("127.0.0.1:9090", c(4,5,2))
+
+}
