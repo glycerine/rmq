@@ -8,13 +8,13 @@ The much anticipated Go 1.5 release brought strong support for building C-style 
 
 Package rmq provides messaging based on msgpack and websockets. It demonstrates calling from R into Golang (Go) libraries to extend R with functionality available in Go.
 
- We use the Go library https://github.com/ugorji/go codec for msgpack encoding and decoding. This is a high performance implementation. We use it in a mode where it only supports the updated msgpack 2 (current) spec.
+ We use the Go library https://github.com/ugorji/go codec for msgpack encoding and decoding. This is a high performance implementation. We use it in a mode where it only supports the updated msgpack 2 (current) spec. This is critical for interoperability with other compiled languages that distiguish between utf8 strings and binary blobs (otherwise embedded '\0' zeros in blobs cause problems).
 
-For websockets, we use the terrific https://github.com/gorilla/websocket library. As time permits in the future, we'll extend this proof of concept into a more integrated messaging system.
+For websockets, we use the terrific https://github.com/gorilla/websocket library. As time permits in the future, we may extend more features aiming towards message queuing as well. The gorilla library supports securing your communication with TLS certs.
 
 ##Status
 
-Proof of concept. A weekend sprint worth of work was done. The msgpack portion is solid and tested. The websocket portion is there, but is just a proof of concept without much polish (yet). Integration between the two is still todo.
+Excellent. Tested on OSX and Linux. Documentation still needs to be finished, but the package is functionally complete for the RPC over websockets and msgpack based serialization.
 
 ## example R session, showing the msgpack library at work
 
@@ -40,6 +40,51 @@ $E
 
 > 
 ~~~
+
+###sample session showing web-socket based RPC, from both the client and the server side:
+
+server-side:
+~~~
+> require(rmq) 
+> handler <- function(x) {
+        print("handler called back with argument x = ")
+        print(x)
+        reply = list()
+        reply$hi = "there!"
+        reply$yum = c(1.1, 2.3)
+        reply$input = x
+        reply
+    }
++ + + + + + + + > > 
+> listenAndServe(handler, addr = "127.0.0.1:9090")
+ListenAndServe listening on address '127.0.0.1:9090'...
+[1] "handler called back with argument x = "
+$hello
+[1] "cran"  "this"  "is"    "great"
+
+  [give Ctrl-c to stop the web-server]
+>
+~~~
+
+client-side:
+~~~
+> require(rmq)
+> my.message=list()
+> my.message$hello =c("cran","this","is","great")
+> rmq.call(addr = "127.0.0.1:9090", my.message)
+$hi
+[1] "there!"
+$input
+$input$hello
+[1] "cran"  "this"  "is"    "great"
+$yum
+[1] 1.1 2.3
+> 
+~~~
+
+See also the test.r2r.call() and test.r2r.server() examples which demonstrate transporting full blown R objects over the RMQ transport layer.
+
+### copyright and license
 
 Copyright 2015 Jason E. Aten, Ph.D.
 
