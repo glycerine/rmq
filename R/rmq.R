@@ -106,7 +106,7 @@ r2r.server <- function(handler, addr=default.addr) {
     handler(unserialize(x, connection=NULL))
   }
   
-  r = listenAndServe(user.handler, addr)  
+  r = listenAndServe(unser.handler, addr)  
 }
 
 r2r.call <- function(msg, addr = default.addr) {
