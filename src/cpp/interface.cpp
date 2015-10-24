@@ -30,10 +30,14 @@ void __attribute__ ((constructor)) my_init(void) {
     printf("   constructor my_init for interface.cpp called!\n");
 }
 
+unsigned long int get_starting_signint_handler() {
+    return (unsigned long int)(starting_act.sa_handler);
+}
+
 unsigned long int get_signint_handler() {
     struct sigaction act;
     sigaction(SIGINT, NULL, &act);    
-    return (long long)(act.sa_handler);
+    return (unsigned long int)(act.sa_handler);
 }
   
   

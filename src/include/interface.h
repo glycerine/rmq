@@ -16,6 +16,7 @@
 extern "C" {
 #endif
 
+unsigned long int get_starting_signint_handler();
 unsigned long int get_signint_handler();
 
   
