@@ -140,6 +140,6 @@ func main() {
 	d := C.SEXP(0)
 	FromMsgpack(d)
 	ToMsgpack(d)
-	RmqWebsocketCall(d, d, d, d)
+	RmqWebsocketCall(d, d, d)
 	ListenAndServe(d, d, d)
 }
