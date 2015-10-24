@@ -4,6 +4,20 @@
 ##  http://www.apache.org/licenses/
 ###########################################################################
 
+#' R Messaging and Queuing: msgpack2 serialization and RPC over websockets
+#'
+#' RMQ lets you do msgpack2 encoding and decoding, and provides a
+#' websocket based remote procedure call (RPC) mechanism.
+#'
+#' The only function you're likely to need from \pkg{roxygen2} is
+#' \code{\link{roxygenize}}. Otherwise refer to the vignettes to see
+#' how to format the documentation.
+#'
+#' @references \url{https://github.com/glycerine/rmq}, \url{http://msgpack.org}
+#' @docType package
+#' @name rmq
+NULL
+
 #' The default address bound by \code{rmq.server}.
 #' @family rmq functions
 rmq.default.addr <- "127.0.0.1:9090"
