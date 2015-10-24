@@ -8,7 +8,7 @@ The much anticipated Go 1.5 release brought strong support for building C-style 
 
 Package rmq provides messaging based on msgpack and websockets. It demonstrates calling from R into Golang (Go) libraries to extend R with functionality available in Go.
 
- We use the Go library https://github.com/ugorji/go codec for msgpack encoding and decoding. This is a high performance implementation. We use it in a mode where it only supports the updated msgpack 2 (current) spec. This is critical for interoperability with other compiled languages that distiguish between utf8 strings and binary blobs (otherwise embedded '\0' zeros in blobs cause problems).
+We use the Go library https://github.com/ugorji/go codec for msgpack encoding and decoding. This is a high performance implementation. We use it in a mode where it only supports the updated msgpack 2 (current) spec. This is critical for interoperability with other compiled languages that distiguish between utf8 strings and binary blobs (otherwise embedded '\0' zeros in blobs cause problems).
 
 For websockets, we use the terrific https://github.com/gorilla/websocket library. As time permits in the future, we may extend more features aiming towards message queuing as well. The gorilla library supports securing your communication with TLS certs.
 
@@ -18,8 +18,8 @@ Excellent. Tested on OSX and Linux. Documentation has been written and is availa
 
 ## docs
 
-[pdf](https://github.com/glycerine/rmq/blob/master/rmq.pdf)
-
+[pdf in R documentation format](https://github.com/glycerine/rmq/blob/master/man/rmq.pdf)
+[godoc API reference](https://godoc.org/)
 
 
 ## example R session, showing the msgpack library at work
