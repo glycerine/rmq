@@ -39,13 +39,6 @@ use golang inside R.
 */
 package main
 
-// This is a stub. This package actually uses CGO. We use a
-// stub instead to make it go-gettable and index-able by godoc.
-//
-// See the actually implementation here:
-// https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go
-//
-
 /*
 typedef int SEXP;
 */
@@ -142,4 +135,11 @@ func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 	return addr_
 }
 
-func main() {}
+func main() {
+	// dummy calls. fake calls to the stubs.
+	d := C.SEXP(0)
+	FromMsgpack(d)
+	ToMsgpack(d)
+	RmqWebsocketCall(d, d, d, d)
+	ListenAndServe(d, d, d)
+}
