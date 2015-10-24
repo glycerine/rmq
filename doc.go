@@ -45,9 +45,11 @@ package main
 // See the actually implementation here:
 // https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go
 //
-var C struct {
-	SEXP int // placeholder for R's universal 's-expression' type
-}
+
+/*
+typedef int SEXP;
+*/
+import "C"
 
 // FromMsgpack converts a serialized RAW vector of of msgpack2
 // encoded bytes into an R object. We use msgpack2 so that there is
@@ -139,3 +141,5 @@ func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 	// https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go
 	return addr_
 }
+
+func main() {}
