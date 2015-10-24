@@ -1,6 +1,15 @@
 # rmq: R Messaging and Queuing
 
-### Or: How to utilize Go libraries from R.
+
+## docs
+
+[pdf in R documentation format](https://github.com/glycerine/rmq/blob/master/man/rmq.pdf)
+
+[godoc API reference](https://godoc.org/github.com/glycerine/rmq)
+
+[![GoDoc](https://godoc.org/github.com/glycerine/rmq?status.svg)](https://godoc.org/github.com/glycerine/rmq)
+
+### RMQ Or: How to utilize Go libraries from R.
 
 The much anticipated Go 1.5 release brought strong support for building C-style shared libraries (.so files) from Go source code and libraries. 
 
@@ -16,12 +25,6 @@ For websockets, we use the terrific https://github.com/gorilla/websocket library
 
 Excellent. Tested on OSX and Linux. Documentation has been written and is available. The package is functionally complete for the RPC over websockets and msgpack based serialization.  After interactive usage, I added SIGINT handling so that the web-server can be stopped during development with a simple ctrl-c at the R console. The client side will be blocked during calls (it does not poll back to R while waiting on the network) but has a configurable timeout (default 5 seconds), that allows easy client-side error handling.
 
-## docs
-
-[pdf in R documentation format](https://github.com/glycerine/rmq/blob/master/man/rmq.pdf)
-
-
-[godoc API reference](https://godoc.org/github.com/glycerine/rmq)
 
 
 ## example R session, showing the msgpack library at work
