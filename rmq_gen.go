@@ -1,1 +1,0 @@
-src/rmq/rmq_gen.go
