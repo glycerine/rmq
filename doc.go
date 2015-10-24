@@ -130,18 +130,18 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 // Gorilla Web toolkit. http://www.gorillatoolkit.org/
 //
 // addr_ is an "ip:port" string: where to find the server;
-//    it should match the addr_ the server was started with.
+// it should match the addr_ the server was started with.
 //
 // msg_ is the R object to be sent to the server.
 //
 // timeout_msec_ is a numeric count of milliseconds to
-//   wait for a reply from the server. Timeouts are the
-//   only way we handle servers that accept our connect
-//   and then crash or take too long. Although a timeout
-//   of 0 will wait forever, this is not recommended.
-//   SIGINT (ctrl-c) will not interrupt a waiting client,
-//   so do be sure to give it some sane timeout. The
-//   default is 5000 msec (5 seconds).
+// wait for a reply from the server. Timeouts are the
+// only way we handle servers that accept our connect
+// and then crash or take too long. Although a timeout
+// of 0 will wait forever, this is not recommended.
+// SIGINT (ctrl-c) will not interrupt a waiting client,
+// so do be sure to give it some sane timeout. The
+// default is 5000 msec (5 seconds).
 //
 func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 	// This is a stub to make API doc and searchable.
