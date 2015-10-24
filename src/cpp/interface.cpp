@@ -17,10 +17,22 @@
 
 
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+void R_init_rmq(DllInfo *info)
+{
+  /* Register routines,
+     allocate resources. */
+    printf("   R_init_rmq() called\n");
+}
+
+void R_unload_rmq(DllInfo *info)
+{
+  /* Release resources. */
+    printf("   R_unload_rmq() called\n");
+}
 
 struct sigaction starting_act;
 
@@ -28,7 +40,24 @@ void __attribute__ ((constructor)) my_init(void) {
     sigaction(SIGINT, NULL, &starting_act);
     printf("   ++ a starts, starting_act.sa_handler = %p\n", starting_act.sa_handler);
     printf("   constructor my_init for interface.cpp called!\n");
+
+    // to avoid go taking over the SIGINT handler, we 
+    // temporarily set SIGINT to SIG_IGN (no handler), which
+    // means that the go runtime initialization in runtime/signal1_unix.go
+    // will leave it alone. Hence we can later re-install the R
+    // SIGINT handler and skip having the go runtime crash on 
+    // them (OSX only; see https://github.com/golang/go/issues/13034)
+    // This means our web server will need to poll R and ask it if
+    // it wants us to return, even when "blocked" waiting on
+    // a socket.
+    struct sigaction act_with_ignore_sigint;
+    act_with_ignore_sigint.sa_handler = SIG_IGN;
+    sigaction(SIGINT, &act_with_ignore_sigint, NULL);
 }
+
+  void restore_starting_sigint_handler() {
+    sigaction(SIGINT, &starting_act, NULL);
+  }
 
 unsigned long int get_starting_signint_handler() {
     return (unsigned long int)(starting_act.sa_handler);

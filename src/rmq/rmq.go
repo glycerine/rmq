@@ -27,11 +27,17 @@ import (
 	"os/signal"
 	"reflect"
 	"sort"
+	"time"
 	"unsafe"
 
 	"github.com/gorilla/websocket"
 	"github.com/ugorji/go/codec"
 )
+
+// restore R's signal handler for SIGINT
+func init() {
+	C.restore_starting_sigint_handler()
+}
 
 /*
 // try to fix the signal handling that cshared lib loading changes
@@ -183,6 +189,12 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 		//signal.Notify(ctrlC_Chan, os.Interrupt)
 
 		select {
+		case <-time.After(time.Millisecond * 100):
+			// this may not return!
+			// how will the server know to cancel/cleanup?
+			// we'll after to define a separate function for that.
+			C.R_CheckUserInterrupt()
+
 		case msgpackRequest := <-requestToRCh:
 
 			rRequest := decodeMsgpackToR(*msgpackRequest)

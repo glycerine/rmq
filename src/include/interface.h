@@ -9,7 +9,10 @@
 #ifndef INTERFACE_HPP
 #define INTERFACE_HPP
 
+#include <R.h>
 #include <Rinternals.h>
+#include <R_ext/Rdynload.h>
+#include <R_ext/Utils.h>
 #include <signal.h>
 
 #ifdef __cplusplus
@@ -19,6 +22,7 @@ extern "C" {
 unsigned long int get_starting_signint_handler();
 unsigned long int get_signint_handler();
 
+  void restore_starting_sigint_handler();
   
   extern struct sigaction starting_act;
 
