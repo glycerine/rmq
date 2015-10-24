@@ -85,10 +85,10 @@ var upgrader = websocket.Upgrader{} // use default options
 //export ListenAndServe
 func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
-	orig_r_sigint_handler := uintptr(C.get_starting_signint_handler())
-	cur_sigint_handler := uintptr(C.get_signint_handler())
-	fmt.Printf("curAct for SIGINT is %p  vs previous was %p\n",
-		unsafe.Pointer(cur_sigint_handler), unsafe.Pointer(orig_r_sigint_handler))
+	//	orig_r_sigint_handler := uintptr(C.get_starting_signint_handler())
+	//	cur_sigint_handler := uintptr(C.get_signint_handler())
+	//	fmt.Printf("curAct for SIGINT is %p  vs previous was %p\n",
+	//		unsafe.Pointer(cur_sigint_handler), unsafe.Pointer(orig_r_sigint_handler))
 
 	addr, err := getAddr(addr_)
 
@@ -125,6 +125,11 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	reqStopCh := make(chan bool)
 	doneCh := make(chan bool)
 	var lastControlHeartbeatTimeNano int64
+
+	beatHeart := func() {
+		now := int64(time.Now().UnixNano())
+		atomic.StoreInt64(&lastControlHeartbeatTimeNano, now)
+	}
 
 	webSockHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -172,6 +177,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	// too long without an update. This will
 	// happen when C.R_CheckUserInterrupt()
 	// doesn't return below in the main control loop.
+	beatHeart()
 	go func() {
 		for {
 			select {
@@ -179,8 +185,10 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 				last := atomic.LoadInt64(&lastControlHeartbeatTimeNano)
 				lastTm := time.Unix(0, last)
 				deadline := lastTm.Add(300 * time.Millisecond)
-				if time.Now().After(deadline) {
-					fmt.Printf("\n web-server watchdog: no heartbeat after 300ms, shutting down.\n")
+				now := time.Now()
+				if now.After(deadline) {
+					VPrintf("\n web-server watchdog: no heartbeat "+
+						"after %v, shutting down.\n", now.Sub(lastTm))
 					server.Stop()
 					return
 				}
@@ -209,8 +217,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			// A: we'll have the other goroutines check the following
 			// timestamp. If it is too out of date, then they'll
 			// know that they should cleanup.
-			now := int64(time.Now().UnixNano())
-			atomic.StoreInt64(&lastControlHeartbeatTimeNano, now)
+			beatHeart()
 			C.R_CheckUserInterrupt()
 
 		case msgpackRequest := <-requestToRCh:

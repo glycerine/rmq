@@ -21,25 +21,36 @@
 extern "C" {
 #endif
 
+  // called after the ((constructor)) routines.
 void R_init_rmq(DllInfo *info)
 {
   /* Register routines,
      allocate resources. */
-    printf("   R_init_rmq() called\n");
+  //printf("   R_init_rmq() called\n");
 }
 
+  // called when R wants to unload.
 void R_unload_rmq(DllInfo *info)
 {
   /* Release resources. */
-    printf("   R_unload_rmq() called\n");
+  //printf("   R_unload_rmq() called\n");
 }
 
 struct sigaction starting_act;
 
+  // the ((constructor)) annotation makes this get
+  // called before the cshared go routine runtime initializes,
+  // which is why we manipulate the signal handling table here.
+  // 
+  // By setting SIGINT to be SIG_IGN, the go runtime won't take
+  // it over. Then we can safely restore the R handler for
+  // for SIGINT once the go runtime as completed initialization.
+  // See the init() function in rmq.go for that logic.
+  //
 void __attribute__ ((constructor)) my_init(void) {
     sigaction(SIGINT, NULL, &starting_act);
-    printf("   ++ a starts, starting_act.sa_handler = %p\n", starting_act.sa_handler);
-    printf("   constructor my_init for interface.cpp called!\n");
+    //printf("   ++ a starts, starting_act.sa_handler = %p\n", starting_act.sa_handler);
+    //printf("   constructor my_init for interface.cpp called!\n");
 
     // to avoid go taking over the SIGINT handler, we 
     // temporarily set SIGINT to SIG_IGN (no handler), which
