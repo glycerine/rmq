@@ -72,7 +72,7 @@ test.r2r.server <- function() {
   handler = function(x) {
     print("handler called back with argument x = ")
     print(x)
-    browser()
+    print("computing and returning x$f(x$arg)")    
     x$f(x$arg)
   }
     
