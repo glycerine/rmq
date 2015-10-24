@@ -57,7 +57,12 @@ rmq.default.addr <- "127.0.0.1:9090"
 #'    reply
 #'  }
 #'  r = rmq.server(handler, addr=rmq.default.addr)
+#'
+#'  ## lastly the client call
+#'  rmq.call("hello rmq!")
+#'
 #' }
+#' 
 #'
 #' @family rmq functions
 #'
@@ -161,17 +166,29 @@ from.msgpack <- function(x) {
 #' 
 #'  Caveat: you client-server protocol can no
 #'  longer be evolved by adding new fields to the
-#'  msgpack.
+#'  msgpack. If you want to be able to evolve your
+#'  cluster gracefully over time, you may be
+#'  better sticking to msgpack.
 #'
 #' @examples
 #' \dontrun{
+#'
+#'  ## R session 1 - start the server, giving it
+#'  ##  a handler to call on arrival of each new message.
+#'
 #'  handler = function(x) {
 #'    print("handler called back with argument x = ")
 #'    print(x)
 #'    print("computing and returning x$f(x$arg)")    
 #'    x$f(x$arg)
 #'  }
-#'  r = r2r.server(handler, addr=rmq.default.addr)
+#'  r = r2r.server(handler)
+#'
+#'  ## lastly the client call - in R session #2
+#'   x=list()
+#'   x$arg=c(1,2,3)
+#'   x$f = function(y) { sum(y) }
+#'   r2r.call(x)
 #' }
 #' 
 #' @family rmq functions
@@ -196,10 +213,7 @@ r2r.server <- function(handler, addr=rmq.default.addr) {
 #'   x$f = function(y) { sum(y) }
 #'   r2r.call(x)
 #' }
-#' @seealso
-#'   \code{r2r.server},
-#'   \code{rmq.server},
-#'   \code{rmq.call}
+#' @family rmq functions
 #'
 r2r.call <- function(msg, addr = rmq.default.addr) {
   rmq.call(serialize(msg, connection=NULL), addr)
