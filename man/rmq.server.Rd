@@ -34,11 +34,16 @@ Start an RMQ server, listening on specified IP and port.
    reply
  }
  r = rmq.server(handler, addr=rmq.default.addr)
+
+ ## lastly the client call
+ rmq.call("hello rmq!")
+
 }
 }
 \seealso{
 Other rmq.functions: \code{\link{from.msgpack}};
-  \code{\link{r2r.server}}; \code{\link{rmq.call}};
-  \code{\link{rmq.default.addr}}; \code{\link{to.msgpack}}
+  \code{\link{r2r.call}}; \code{\link{r2r.server}};
+  \code{\link{rmq.call}}; \code{\link{rmq.default.addr}};
+  \code{\link{to.msgpack}}
 }
 

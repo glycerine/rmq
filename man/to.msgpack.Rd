@@ -29,7 +29,8 @@ x=list()
 \url{http://msgpack.org}
 
 Other rmq.functions: \code{\link{from.msgpack}};
-  \code{\link{r2r.server}}; \code{\link{rmq.call}};
-  \code{\link{rmq.default.addr}}; \code{\link{rmq.server}}
+  \code{\link{r2r.call}}; \code{\link{r2r.server}};
+  \code{\link{rmq.call}}; \code{\link{rmq.default.addr}};
+  \code{\link{rmq.server}}
 }
 

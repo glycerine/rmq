@@ -38,22 +38,35 @@ This is an example of how to use \code{rmq.server} to
 
  Caveat: you client-server protocol can no
  longer be evolved by adding new fields to the
- msgpack.
+ msgpack. If you want to be able to evolve your
+ cluster gracefully over time, you may be
+ better sticking to msgpack.
 }
 \examples{
 \dontrun{
+
+ ## R session 1 - start the server, giving it
+ ##  a handler to call on arrival of each new message.
+
  handler = function(x) {
    print("handler called back with argument x = ")
    print(x)
    print("computing and returning x$f(x$arg)")
    x$f(x$arg)
  }
- r = r2r.server(handler, addr=rmq.default.addr)
+ r = r2r.server(handler)
+
+ ## lastly the client call - in R session #2
+  x=list()
+  x$arg=c(1,2,3)
+  x$f = function(y) { sum(y) }
+  r2r.call(x)
 }
 }
 \seealso{
 Other rmq.functions: \code{\link{from.msgpack}};
-  \code{\link{rmq.call}}; \code{\link{rmq.default.addr}};
-  \code{\link{rmq.server}}; \code{\link{to.msgpack}}
+  \code{\link{r2r.call}}; \code{\link{rmq.call}};
+  \code{\link{rmq.default.addr}}; \code{\link{rmq.server}};
+  \code{\link{to.msgpack}}
 }
 

@@ -18,8 +18,9 @@ r2r.call(msg, addr = rmq.default.addr)
 }
 }
 \seealso{
-\code{r2r.server},
-  \code{rmq.server},
-  \code{rmq.call}
+Other rmq.functions: \code{\link{from.msgpack}};
+  \code{\link{r2r.server}}; \code{\link{rmq.call}};
+  \code{\link{rmq.default.addr}}; \code{\link{rmq.server}};
+  \code{\link{to.msgpack}}
 }
 
