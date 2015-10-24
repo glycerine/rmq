@@ -77,7 +77,7 @@ func getAddr(addr_ C.SEXP) (*net.TCPAddr, error) {
 }
 
 func getTimeoutMsec(timeout_msec_ C.SEXP) (int, error) {
-	if C.TYPEOF(timeout_msec_) != C.REALSXP || int(C.Rf_xlength(timeout_msec_)) != 0 {
+	if C.TYPEOF(timeout_msec_) != C.REALSXP || int(C.Rf_xlength(timeout_msec_)) != 1 {
 		return 0, fmt.Errorf("getTimeoutMsec() error: timeout_msec must be a single number; it should convey the number of milliseconds to wait before timing out the call.")
 	}
 
@@ -278,8 +278,8 @@ func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 	}
 
 	var deadline time.Time
-	if timeout_ != 0 {
-		deadline = time.Now().Add(timeout * time.Millisecond)
+	if timeout != 0 {
+		deadline = time.Now().Add(time.Duration(timeout) * time.Millisecond)
 	}
 
 	// marshall msg_ into msgpack []byte
@@ -290,7 +290,8 @@ func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 	VPrintf("rmq says: after client_main().\n")
 
 	if err != nil {
-		C.ReportErrorToR_NoReturn(err.Error())
+		C.ReportErrorToR_NoReturn(C.CString(err.Error()))
+		return C.R_NilValue
 	}
 
 	if reply == nil || len(reply) <= 0 {

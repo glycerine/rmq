@@ -11,5 +11,6 @@ export(
        rmq.call,
        r2r.server,
        r2r.call,
-       test.r2r.server
+       test.r2r.server,
+       test.r2r.call
        )

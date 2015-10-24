@@ -18,7 +18,7 @@ listenAndServe <- function(handler, addr = default.addr) {
   invisible(.Call("ListenAndServe", addr, handler, new.env(), PACKAGE="rmq"))
 }
 
-rmq.call <- function(msg, addr = default.addr, timeout.msec = 30000) {
+rmq.call <- function(msg, addr = default.addr, timeout.msec = 5000) {
   .Call("RmqWebsocketCall", addr, msg, timeout.msec, PACKAGE="rmq")
 }
 
@@ -72,6 +72,7 @@ test.r2r.server <- function() {
   handler = function(x) {
     print("handler called back with argument x = ")
     print(x)
+    browser()
     x$f(x$arg)
   }
     
@@ -113,4 +114,10 @@ r2r.call <- function(msg, addr = default.addr) {
   ## r2r.call() is the client counter-part to r2r.server().
   rmq.call(serialize(msg, connection=NULL), addr)
 }
-  
+
+test.r2r.call <- function() {
+ x=list()
+ x$arg=c(1,2,3)
+ x$f = function(y) { sum(y) }
+ r2r.call(x)
+}
