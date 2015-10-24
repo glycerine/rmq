@@ -4,7 +4,7 @@ Version: 1.0.1
 Maintainer: Jason E. Aten <j.e.aten@gmail.com>
 Author: Jason E. Aten <j.e.aten@gmail.com>
 Description: Package rmq provides messaging based on msgpack and websockets. It demonstrates calling from R into Golang (Go) libraries to extend R with functionality available in Go. We use the Go library https://github.com/ugorji/go/codec for msgpack encoding and decoding. This is a high performance implementation, and supports the updated msgpack 2 (current) spec only. For websockets, we use the terrific https://github.com/gorilla/websocket library.
-License: Apache 2.0. Individual vendored components include their own licenses, which may differ.
+License: Apache 2.0. Individual vendored components include their own licenses, which are Apache2, MIT, or BSD style. See the src/vendor subdirectories for details.
 SystemRequirements: golang 1.5.1 or later must be installed.
 URL: https://github.com/glycerine/rmq
 BugReports: https://github.com/glycerine/rmq/issues

@@ -78,3 +78,8 @@ thrift-run:
 
 superclean: clean
 	rm -f vendor.tar.gz
+
+doc:
+	cd .. && echo "require(roxygen2); roxygenise()" | R --no-save --quiet
+	cd ../.. && R CMD Rd2pdf rmq/
+
