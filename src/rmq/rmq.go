@@ -27,6 +27,7 @@ import (
 	"os/signal"
 	"reflect"
 	"sort"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -38,23 +39,6 @@ import (
 func init() {
 	C.restore_starting_sigint_handler()
 }
-
-/*
-// try to fix the signal handling that cshared lib loading changes
-func init() {
-	sigCtrlC_chan := make(chan os.Signal, 5)
-	signal.Notify(sigCtrlC_chan, os.Interrupt)
-	go func() {
-		for {
-			select {
-			case <-sigCtrlC_chan:
-				// imitate what R's C.handleInterrupt does:
-				C.R_interrupts_pending = 1
-			}
-		}
-	}()
-}
-*/
 
 // inside test struct for checking serialization
 type Subload struct {
@@ -133,16 +117,14 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	// problem because if we call back into R from the goroutine thread
 	// instead of R's thread, R will see the small stack and freak out.
 	//
-	// So: we'll use a channel to send the request to the main C/R thread
+	// So: we'll use a channel to send the request to the main R thread
 	// for call back into R. The *[]byte passed on these channels represent
 	// msgpack serialized R objects.
 	requestToRCh := make(chan *[]byte)
 	replyFromRCh := make(chan *[]byte)
 	reqStopCh := make(chan bool)
 	doneCh := make(chan bool)
-
-	ctrlC_Chan := make(chan os.Signal, 5)
-	//signal.Notify(ctrlC_Chan, os.Interrupt)
+	var lastControlHeartbeatTimeNano int64
 
 	webSockHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -185,14 +167,50 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	server := NewWebServer(addr.String(), mux)
 	server.Start()
 
+	// This watchdog will shut the webserver down
+	// if lastControlHeartbeatTimeNano goes
+	// too long without an update. This will
+	// happen when C.R_CheckUserInterrupt()
+	// doesn't return below in the main control loop.
+	go func() {
+		for {
+			select {
+			case <-time.After(time.Millisecond * 100):
+				last := atomic.LoadInt64(&lastControlHeartbeatTimeNano)
+				lastTm := time.Unix(0, last)
+				deadline := lastTm.Add(300 * time.Millisecond)
+				if time.Now().After(deadline) {
+					fmt.Printf("\n web-server watchdog: no heartbeat after 300ms, shutting down.\n")
+					server.Stop()
+					return
+				}
+			}
+		}
+	}()
+
+	// This is the main control routine that lives on the main R thread.
+	// All callbacks into R must come from this thread, as it is a
+	// C thread with a big stack. Go routines have tiny stacks and
+	// R detects this and crashes if you try to call back from one of them.
 	for {
-		//signal.Notify(ctrlC_Chan, os.Interrupt)
 
 		select {
 		case <-time.After(time.Millisecond * 100):
-			// this may not return!
-			// how will the server know to cancel/cleanup?
-			// we'll after to define a separate function for that.
+			//
+			// Our heartbeat logic:
+			//
+			// R_CheckUserInterrupt() will check if Ctrl-C
+			// was pressed by user and R would like us to stop.
+			// (R's SIGINT signal handler is installed in our
+			// package init() routine at the top of this file.)
+			//
+			// Note that R_CheckUserInterrupt() may not return!
+			// So, Q: how will the server know to cancel/cleanup?
+			// A: we'll have the other goroutines check the following
+			// timestamp. If it is too out of date, then they'll
+			// know that they should cleanup.
+			now := int64(time.Now().UnixNano())
+			atomic.StoreInt64(&lastControlHeartbeatTimeNano, now)
 			C.R_CheckUserInterrupt()
 
 		case msgpackRequest := <-requestToRCh:
@@ -217,21 +235,8 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 			C.Rf_unprotect(3)
 			replyFromRCh <- &reply
 
-			//		case <-time.After(time.Second):
-			//			// ask R to check for interrupts
-			//			C.R_CheckUserInterrupt()
-
-		case <-ctrlC_Chan:
-			fmt.Printf("\n\n   rmq.goListenAndServe() sees ctrl-c !!\n\n")
-			// ctrl-c pressed, return to user.
-			signal.Stop(ctrlC_Chan)
-			fmt.Printf("\n\n  asking webserver to Stop...\n\n")
-			server.Stop()
-			close(doneCh)
-			return C.R_NilValue
-
 		case <-reqStopCh:
-			// possibly fired by ctrl-c? not sure who should close(reqStopCh).
+			// not sure who should close(reqStopCh). At the moment it isn't used.
 			close(doneCh)
 			return C.R_NilValue
 		}
