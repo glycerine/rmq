@@ -4,7 +4,7 @@
 ##  http://www.apache.org/licenses/
 ###########################################################################
 
-#' the default address for \code{rmq.server} and \code{rmq.client} calls
+#' The default address bound by \code{rmq.server}.
 #' @seealso
 #'   \code{rmq.server},
 #'   \code{rmq.call}
@@ -12,7 +12,7 @@
 #'   \code{r2r.call},
 rmq.default.addr <- "127.0.0.1:9090"
 
-#' Start an RMQ server, listening on specified IP and port address.
+#' Start an RMQ server, listening on specified IP and port.
 #'
 #' @param handler A handler R function taking a single argument
 #' @param addr A string of "IP:port" format. The server will bind \code{addr}, and it must be available. Defaults to \code{rmq.default.addr}, which is "127.0.0.1:9090".
@@ -41,7 +41,7 @@ rmq.server <- function(handler, addr = rmq.default.addr) {
 }
 
 
-#' Send a message to an RMQ server
+#' Send a message to a listening RMQ server.
 #'
 #' @param msg An R object. Can be a list. Internally this will be converted into msgpack and sent to the server.
 #' @param addr A string of "IP:port" format. The server will bind \code{addr}, and it must be available. Defaults to \code{rmq.default.addr}, which is "127.0.0.1:9090".
@@ -118,7 +118,7 @@ demo.r2r.server <- function() {
   r = r2r.server(handler, addr=rmq.default.addr)
 }
 
-#' server expecting R objects
+#' Start a server expecting serialized then msgpacked R objects.
 #'
 #' \code{r2r.call} calls on R's native \code{serialize()} function,
 #' the encodes those bytes in msgpack and sends them over
@@ -177,7 +177,10 @@ r2r.server <- function(handler, addr=rmq.default.addr) {
   r = rmq.server(unser.handler, addr)
 }
 
+#' Send an R object to a listening RMQ server.
+#'
 #' \code{r2r.call()} is the client counter-part to \code{r2r.server()}
+#'
 #' @examples
 #' \dontrun{ 
 #'   x=list()
@@ -189,7 +192,7 @@ r2r.server <- function(handler, addr=rmq.default.addr) {
 #'   \code{r2r.server},
 #'   \code{rmq.server},
 #'   \code{rmq.call}
-
+#'
 r2r.call <- function(msg, addr = rmq.default.addr) {
   rmq.call(serialize(msg, connection=NULL), addr)
 }
