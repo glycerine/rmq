@@ -9,9 +9,17 @@
 #' RMQ lets you do msgpack2 encoding and decoding, and provides a
 #' websocket based remote procedure call (RPC) mechanism.
 #'
-#' The only function you're likely to need from \pkg{roxygen2} is
-#' \code{\link{roxygenize}}. Otherwise refer to the vignettes to see
-#' how to format the documentation.
+#' The basic server and client functions are \code{\link{rmq.server}}
+#' and \code{\link{rmq.call}}. The client and server communicate
+#' internally by encoding and decoding to msgpack raw byte on the wire.
+#' They use the websocket protocol which means the server can be
+#' accessed from the broswer-based javascript, and the calls will
+#' go through firewalls without issue. The gorilla websocket 
+#' implementation supports TLS certificates for security.
+#' 
+#' You can also make use of \code{\link{to.msgpack}} and
+#'  \code{\link{from.msgpack}} diretly for situations that do not
+#' require remote procedure call or websockets.
 #'
 #' @references \url{https://github.com/glycerine/rmq}, \url{http://msgpack.org}
 #' @docType package
@@ -78,14 +86,16 @@ rmq.call <- function(msg, addr = rmq.default.addr, timeout.msec = 5000) {
 #'
 #' @param x An R object to be serialized. Lists, numeric vectors, raw vectors, and string vectors are supported.
 #' @return A raw byte vector containing the msgpack serialized object.
+#'
 #' @examples
+#' 
 #   \dontrun{
-#'   x=list()
-#'   x$hello = "rmq"
-#'   raw=to.msgpack(x)
-#'   y=from.msgpack(raw)
-#'   ## y and x should be equal
-#' }
+#'    x=list()
+#'    x$hello = "rmq"
+#'    raw=to.msgpack(x)
+#'    y=from.msgpack(raw)
+#'    ## y and x should be equal
+#'
 #'
 #' @family rmq functions
 #'
@@ -174,6 +184,7 @@ r2r.server <- function(handler, addr=rmq.default.addr) {
 #' \code{r2r.call()} is the client counter-part to \code{r2r.server()}
 #'
 #' @examples
+#'
 #' \dontrun{ 
 #'   x=list()
 #'   x$arg=c(1,2,3)
