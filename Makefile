@@ -16,3 +16,6 @@ build:
 superclean:
 	find . -name '*~' | xargs rm -f
 	cd src && make superclean
+
+doc:
+	cd src && make doc

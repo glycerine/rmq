@@ -81,5 +81,4 @@ superclean: clean
 
 doc:
 	cd .. && echo "require(roxygen2); roxygenise()" | R --no-save --quiet
-	cd ../.. && R CMD Rd2pdf rmq/
-
+	cd ../.. && R CMD Rd2pdf rmq/ && mv rmq.pdf rmq/
