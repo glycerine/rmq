@@ -5,11 +5,7 @@
 ###########################################################################
 
 #' The default address bound by \code{rmq.server}.
-#' @seealso
-#'   \code{rmq.server},
-#'   \code{rmq.call}
-#'   \code{r2r.server},
-#'   \code{r2r.call},
+#' @family rmq functions
 rmq.default.addr <- "127.0.0.1:9090"
 
 #' Start an RMQ server, listening on specified IP and port.
@@ -36,6 +32,8 @@ rmq.default.addr <- "127.0.0.1:9090"
 #'  r = rmq.server(handler, addr=rmq.default.addr)
 #' }
 #'
+#' @family rmq functions
+#'
 rmq.server <- function(handler, addr = rmq.default.addr) {
    try(.Call("ListenAndServe", addr, handler, new.env(), PACKAGE="rmq"))
 }
@@ -52,6 +50,8 @@ rmq.server <- function(handler, addr = rmq.default.addr) {
 #'   rmq.call(msg, addr="10.0.0.1:7777", timeout.msec = 1000)
 #' }
 #'
+#' @family rmq functions
+#'
 rmq.call <- function(msg, addr = rmq.default.addr, timeout.msec = 5000) {
   try(.Call("RmqWebsocketCall", addr, msg, timeout.msec, PACKAGE="rmq"))
 }
@@ -64,7 +64,6 @@ rmq.call <- function(msg, addr = rmq.default.addr, timeout.msec = 5000) {
 #'
 #' @param x An R object to be serialized. Lists, numeric vectors, raw vectors, and string vectors are supported.
 #' @return A raw byte vector containing the msgpack serialized object.
-#' @seealso \url{http://msgpack.org}
 #' @examples
 #   \dontrun{
 #'   x=list()
@@ -73,6 +72,10 @@ rmq.call <- function(msg, addr = rmq.default.addr, timeout.msec = 5000) {
 #'   y=from.msgpack(raw)
 #'   ## y and x should be equal
 #' }
+#'
+#' @family rmq functions
+#'
+#' @seealso \url{http://msgpack.org}
 #'
 to.msgpack <- function(x) {
   .Call("ToMsgpack", x)
@@ -87,36 +90,14 @@ to.msgpack <- function(x) {
 #' @param x An raw byte vector of msgpack formatted bytes.
 #' @return The R object represented by x.
 #'
+#' @family rmq functions
+#'
 #' @seealso \url{http://msgpack.org}
+#'
 from.msgpack <- function(x) {
   .Call("FromMsgpack", x)
 }
 
-
-#' demo.r2.rserver demonstrates the power of
-#' the r2r.server and full serialization of R
-#' objects including functions.
-#'
-#' This server expects to receive a message x that is assembled
-#' like this:
-#'
-#'   x = list()
-#'   x$f = <function to evaluate remotely>
-#'   x$arg = <argument to give to function x$f>
-#'
-#' Return value: the result of doing x$f(x$arg).
-#'
-demo.r2r.server <- function() {
-
-  handler = function(x) {
-    print("handler called back with argument x = ")
-    print(x)
-    print("computing and returning x$f(x$arg)")    
-    x$f(x$arg)
-  }
-    
-  r = r2r.server(handler, addr=rmq.default.addr)
-}
 
 #' Start a server expecting serialized then msgpacked R objects.
 #'
@@ -164,10 +145,7 @@ demo.r2r.server <- function() {
 #'  r = r2r.server(handler, addr=rmq.default.addr)
 #' }
 #' 
-#' @seealso
-#'   \code{r2r.call},
-#'   \code{rmq.server},
-#'   \code{rmq.call}
+#' @family rmq functions
 #'
 r2r.server <- function(handler, addr=rmq.default.addr) {  
   unser.handler = function(x) {
