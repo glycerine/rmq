@@ -88,6 +88,51 @@ var upgrader = websocket.Upgrader{} // use default options
 // in the form of RmqWebsocketCall() invocations.
 
 //export ListenAndServe
+//
+// ListenAndServe is the server part that expects calls from client
+// in the form of RmqWebsocketCall() invocations.
+// The underlying websocket library is the battle tested
+// https://github.com/gorilla/websocket library from the
+// Gorilla Web toolkit. http://www.gorillatoolkit.org/
+//
+// addr_ is a string in "ip:port" format. The server
+// will bind this address and port on the local host.
+//
+// handler_ is an R function that takes a single argument.
+// It will be called back each time the server receives
+// an incoming message. The returned value of handler
+// becomes the reply to the client.
+//
+// rho_ in an R environment in which the handler_ callback
+// will occur. The user-level wrapper rmq.server() provides
+// a new environment for every call back by default, so
+// most users won't need to worry about rho_.
+//
+// Return value: this is always R_NilValue.
+//
+// Semantics: ListenAndServe() will start a new
+// webserver everytime it is called. If it exits
+// due to a call into R_CheckUserInterrupt()
+// or Rf_error(), then a background watchdog goroutine
+// will notice the lack of heartbeating after 300ms,
+// and will immediately shutdown the listening
+// websocket server goroutine. Hence cleanup
+// is fairly automatic.
+//
+// Signal handling:
+//
+// SIGINT (ctrl-c) is noted by R, and since we
+// regularly call R_CheckUserInterrupt(), the
+// user can stop the server by pressing ctrl-c
+// at the R-console. The go-runtime, as embedded
+// in the c-shared library, is not used to being
+// embedded yet, and so its (system) signal handling
+// facilities (e.g. signal.Notify) should *not* be
+// used. We go to great pains to actually preserve
+// the signal handling that R sets up and expects,
+// and allow the go runtime to see any signals just
+// creates heartache and crashes.
+//
 func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
 	addr, err := getAddr(addr_)
@@ -260,10 +305,16 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 	}
 }
 
+//export RmqWebsocketCall
+//
 // RmqWebsocketCall() is the client part that talks to
 // the server part waiting in ListenAndServe().
-
-//export RmqWebsocketCall
+// ListenAndServe is the server part that expects calls from client
+// in the form of RmqWebsocketCall() invocations.
+// The underlying websocket library is the battle tested
+// https://github.com/gorilla/websocket library from the
+// Gorilla Web toolkit. http://www.gorillatoolkit.org/
+//
 func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 
 	addr, err := getAddr(addr_)
@@ -596,6 +647,14 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 }
 
 //export FromMsgpack
+//
+// FromMsgpack converts a serialized RAW vector of of msgpack2
+// encoded bytes into an R object. We use msgpack2 so that there is
+// a difference between strings (utf8 encoded) and binary blobs
+// which can contain '\0' zeros. The underlying msgpack2 library
+// is the awesome https://github.com/ugorji/go/tree/master/codec
+// library from Ugorji Nwoke.
+//
 func FromMsgpack(s C.SEXP) C.SEXP {
 	// starting from within R, we convert a raw byte vector into R structures.
 
@@ -616,6 +675,14 @@ func FromMsgpack(s C.SEXP) C.SEXP {
 }
 
 //export ToMsgpack
+//
+// ToMsgpack converts an R object into serialized RAW vector
+// of msgpack2 encoded bytes. We use msgpack2 so that there is
+// a difference between strings (utf8 encoded) and binary blobs
+// which can contain '\0' zeros. The underlying msgpack2 library
+// is the awesome https://github.com/ugorji/go/tree/master/codec
+// library from Ugorji Nwoke.
+//
 func ToMsgpack(s C.SEXP) C.SEXP {
 	byteSlice := encodeRIntoMsgpack(s)
 
