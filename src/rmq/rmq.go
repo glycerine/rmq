@@ -151,14 +151,20 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
 		c, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			fmt.Print("websocket handler upgrade error:", err)
+			msg := fmt.Sprintf("server webSockHandler() handler saw "+
+				"websocket upgrader.Upgrade() error: '%s'", err)
+			fmt.Printf("%s\n", msg)
+			http.Error(w, msg, 500)
 			return
 		}
 		defer c.Close()
 
 		_, message, err := c.ReadMessage()
 		if err != nil {
-			fmt.Println("read error: ", err)
+			msg := fmt.Sprintf("server webSockHandler() handler saw "+
+				"websocket ReadMessage() error: '%s'", err)
+			fmt.Printf("%s\n", msg)
+			http.Error(w, msg, 500)
 			return
 		}
 
@@ -167,7 +173,11 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 
 		err = c.WriteMessage(websocket.BinaryMessage, *reply)
 		if err != nil {
-			fmt.Println("write error: ", err)
+			msg := fmt.Sprintf("server webSockHandler() handler saw "+
+				"websocket WriteMessage() error: '%s'", err)
+			fmt.Printf("%s\n", msg)
+			http.Error(w, msg, 500)
+			return
 		}
 	} // end webSockHandler
 
@@ -484,7 +494,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 				var rhs C.double
 				for i := range val {
 					n := val[i].(int64)
-					fmt.Printf("n = %d, rmax = %d, n > rmax = %v\n", n, rmax, n > rmax)
+					VPrintf("n = %d, rmax = %d, n > rmax = %v\n", n, rmax, n > rmax)
 
 					if n < rmin || n > rmax {
 						naflag = true
@@ -492,8 +502,13 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
 					ui = uintptr(i)
 					rhs = C.double(float64(n))
-					// Try to avoid any gc activity by avoiding conversions
-					// and hence do pointer arithmetic all at once in one expression. See
+					// Try to avoid any gc activity (from the Go runtime) while
+					// in the middle of uintptr <-> unsafe.Pointer conversion, as
+					// if the gc were to catch us in the middle of that conversion
+					// it might crash.
+					// Hence we do pointer arithmetic all at once in one expression,
+					// which is at present (Oct 2015) is the recommended safe way
+					// to do pointer arithmetic in Go. See
 					// https://github.com/golang/go/issues/8994 for discussion.
 					*((*C.double)(unsafe.Pointer(uintptr(ptrNumSlice) + size*ui))) = rhs
 				}
