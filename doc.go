@@ -37,7 +37,7 @@ use golang inside R.
 
 
 */
-package main
+package rmq
 
 /*
 typedef int SEXP;
@@ -128,18 +128,24 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 // The underlying websocket library is the battle tested
 // https://github.com/gorilla/websocket library from the
 // Gorilla Web toolkit. http://www.gorillatoolkit.org/
+//
+// addr_ is an "ip:port" string: where to find the server;
+//    it should match the addr_ the server was started with.
+//
+// msg_ is the R object to be sent to the server.
+//
+// timeout_msec_ is a numeric count of milliseconds to
+//   wait for a reply from the server. Timeouts are the
+//   only way we handle servers that accept our connect
+//   and then crash or take too long. Although a timeout
+//   of 0 will wait forever, this is not recommended.
+//   SIGINT (ctrl-c) will not interrupt a waiting client,
+//   so do be sure to give it some sane timeout. The
+//   default is 5000 msec (5 seconds).
+//
 func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 	// This is a stub to make API doc and searchable.
 	// See the actually implementation here:
 	// https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go
 	return addr_
-}
-
-func main() {
-	// dummy calls. fake calls to the stubs.
-	d := C.SEXP(0)
-	FromMsgpack(d)
-	ToMsgpack(d)
-	RmqWebsocketCall(d, d, d)
-	ListenAndServe(d, d, d)
 }
