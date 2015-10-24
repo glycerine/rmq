@@ -63,8 +63,7 @@ var R_serialize_fun C.SEXP
 func getAddr(addr_ C.SEXP) (*net.TCPAddr, error) {
 
 	if C.TYPEOF(addr_) != C.STRSXP {
-		fmt.Printf("addr is not a string (STRXSP; instead it is: %d)! addr argument to ListenAndServe() must be a string of form 'ip:port'\n", C.TYPEOF(addr_))
-		return nil, fmt.Errorf("addr is not string type")
+		return nil, fmt.Errorf("getAddr() error: addr is not a string STRXSP; instead it is type %d. addr argument must be a string of form 'ip:port'\n", C.TYPEOF(addr_))
 	}
 
 	caddr := C.R_CHAR(C.STRING_ELT(addr_, 0))
@@ -75,6 +74,14 @@ func getAddr(addr_ C.SEXP) (*net.TCPAddr, error) {
 		return nil, fmt.Errorf("getAddr() error: address '%s' could not be parsed by net.ResolveTCPAddr(): error: '%s'", addr, err)
 	}
 	return tcpAddr, nil
+}
+
+func getTimeoutMsec(timeout_msec_ C.SEXP) (int, error) {
+	if C.TYPEOF(timeout_msec_) != C.REALSXP || int(C.Rf_xlength(timeout_msec_)) != 0 {
+		return 0, fmt.Errorf("getTimeoutMsec() error: timeout_msec must be a single number; it should convey the number of milliseconds to wait before timing out the call.")
+	}
+
+	return int(C.get_real_elt(timeout_msec_, 0)), nil
 }
 
 var upgrader = websocket.Upgrader{} // use default options
@@ -254,7 +261,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 // the server part waiting in ListenAndServe().
 
 //export RmqWebsocketCall
-func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP) C.SEXP {
+func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 
 	addr, err := getAddr(addr_)
 
@@ -263,20 +270,33 @@ func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP) C.SEXP {
 		return C.R_NilValue
 	}
 
+	timeout, err := getTimeoutMsec(timeout_msec_)
+
+	if err != nil {
+		C.ReportErrorToR_NoReturn(C.CString(err.Error()))
+		return C.R_NilValue
+	}
+
+	var deadline time.Time
+	if timeout_ != 0 {
+		deadline = time.Now().Add(timeout * time.Millisecond)
+	}
+
 	// marshall msg_ into msgpack []byte
 	msgpackRequest := encodeRIntoMsgpack(msg_)
 
 	VPrintf("rmq says: before client_main().\n")
-	reply := client_main(addr, msgpackRequest)
+	reply, err := client_main(addr, msgpackRequest, deadline)
 	VPrintf("rmq says: after client_main().\n")
 
-	if len(reply) == 0 {
+	if err != nil {
+		C.ReportErrorToR_NoReturn(err.Error())
+	}
+
+	if reply == nil || len(reply) <= 0 {
 		return C.R_NilValue
 	}
-	if len(reply) > 0 {
-		return decodeMsgpackToR(reply)
-	}
-	return C.R_NilValue
+	return decodeMsgpackToR(reply)
 }
 
 //export Callcount
@@ -294,7 +314,8 @@ func main() {
 
 var count int
 
-func client_main(addr *net.TCPAddr, msg []byte) []byte {
+// A zero value for deadline means writes will not time out.
+func client_main(addr *net.TCPAddr, msg []byte, deadline time.Time) ([]byte, error) {
 
 	var err error
 	u := url.URL{Scheme: "ws", Host: addr.String(), Path: "/"}
@@ -302,24 +323,37 @@ func client_main(addr *net.TCPAddr, msg []byte) []byte {
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		fmt.Println("dial error:", err)
-		c = nil
-		return []byte{}
+		err := fmt.Errorf("rmq::client_main(), websocket.DefaultDialer() attempt to connect to '%s' resulted in error: '%s'", u.String(), err)
+		return nil, err
 	}
-	defer c.Close()
+	defer func() {
+		if c != nil {
+			c.Close()
+		}
+	}()
+
+	err = c.SetWriteDeadline(deadline)
+	if err != nil {
+		return nil, fmt.Errorf("rmq::client_main(), c.SetWriteDeadline(deadline) to '%s' resulted in error: '%s'", u.String(), err)
+	}
 
 	err = c.WriteMessage(websocket.BinaryMessage, msg)
 	if err != nil {
-		fmt.Println("write err:", err)
+		return nil, fmt.Errorf("rmq::client_main(), c.WriteMessage() to '%s' resulted in error: '%s'", u.String(), err)
+	}
+
+	err = c.SetReadDeadline(deadline)
+	if err != nil {
+		return nil, fmt.Errorf("rmq::client_main(), c.SetReadDeadline(deadline) to '%s' resulted in error: '%s'", u.String(), err)
 	}
 
 	_, replyBytes, err := c.ReadMessage()
 	if err != nil {
-		fmt.Println("read err:", err)
+		return nil, fmt.Errorf("rmq::client_main(), c.ReadMessage() to '%s' resulted in error: '%s'", u.String(), err)
 	}
 	count++
 
-	return replyBytes
+	return replyBytes, nil
 }
 
 func panicOn(err error) {

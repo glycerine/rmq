@@ -18,8 +18,8 @@ listenAndServe <- function(handler, addr = default.addr) {
   invisible(.Call("ListenAndServe", addr, handler, new.env(), PACKAGE="rmq"))
 }
 
-rmq.call <- function(msg, addr = default.addr) {
-  .Call("RmqWebsocketCall", addr, msg, PACKAGE="rmq")
+rmq.call <- function(msg, addr = default.addr, timeout.msec = 30000) {
+  .Call("RmqWebsocketCall", addr, msg, timeout.msec, PACKAGE="rmq")
 }
 
 
@@ -98,12 +98,12 @@ r2r.server <- function(handler, addr=default.addr) {
   ## demonstrated in the r2r.server() call and the
   ## r2r.call() come in handy.
   ##
-  ## Caveats: you client-server protocol can no
+  ## Caveat: you client-server protocol can no
   ## longer be evolved by adding new fields to the
   ## msgpack.
   
   unser.handler = function(x) {
-    handler(unserialize(x, connection=NULL))
+    handler(unserialize(x))
   }
   
   r = listenAndServe(unser.handler, addr)  
@@ -111,6 +111,6 @@ r2r.server <- function(handler, addr=default.addr) {
 
 r2r.call <- function(msg, addr = default.addr) {
   ## r2r.call() is the client counter-part to r2r.server().
-  rmq.call(serialize(msg), addr)
+  rmq.call(serialize(msg, connection=NULL), addr)
 }
   
