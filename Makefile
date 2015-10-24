@@ -12,3 +12,7 @@ install:
 
 build:
 	cd src && make build
+
+superclean:
+	find . -name '*~' | xargs rm -f
+	cd src && make superclean
