@@ -1,6 +1,7 @@
 useDynLib(rmq)
 
 export(
+       test.server,
        block,
        callcount,
        listenAndServe,
