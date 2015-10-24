@@ -11,11 +11,16 @@
 #'
 #' The basic server and client functions are \code{\link{rmq.server}}
 #' and \code{\link{rmq.call}}. The client and server communicate
-#' internally by encoding and decoding to msgpack raw byte on the wire.
-#' They use the websocket protocol which means the server can be
-#' accessed from the broswer-based javascript, and the calls will
-#' go through firewalls without issue. The gorilla websocket 
-#' implementation supports TLS certificates for security.
+#' internally by encoding and decoding to msgpack2 bytes on the wire.
+#' Msgpack2 is the upgraded msgpack spec that distinguishes between
+#' blobs and utf8 strings.
+#'
+#' Client and server use the websocket protocol which means the 
+#' server can be accessed from the broswer-based javascript, and
+#' the calls will go through firewalls without issue. The gorilla websocket 
+#' implementation supports TLS certificates for security. A user
+#' supplied R function is invoked by the server to handle each
+#' incoming client connection.
 #' 
 #' You can also make use of \code{\link{to.msgpack}} and
 #'  \code{\link{from.msgpack}} diretly for situations that do not
