@@ -156,6 +156,9 @@ from.msgpack <- function(x) {
 #' to a waiting \code{r2r.server}, which turns them back
 #' into R objects before passing them to the handler.
 #'
+#' @param handler A handler R function taking a single argument
+#' @param addr A string of "IP:port" format. The server will bind \code{addr}, and it must be available. Defaults to \code{rmq.default.addr}, which is "127.0.0.1:9090".
+#'
 #'  @details
 #'  This is an example of how to use \code{rmq.server} to
 #'  good effect. While \code{rmq.server} is designed to allow
@@ -220,6 +223,9 @@ r2r.server <- function(handler, addr=rmq.default.addr) {
 #' Send an R object to a listening RMQ server.
 #'
 #' \code{r2r.call()} is the client counter-part to \code{r2r.server()}
+#'
+#' @param msg An R object. Can be a list. Internally this will be serialized using \code{serialize}, then converted into a msgpack binary array and sent to the server.
+#' @param addr A string of "IP:port" format. The server will bind \code{addr}, and it must be available. Defaults to \code{rmq.default.addr}, which is "127.0.0.1:9090".
 #'
 #' @examples
 #'
