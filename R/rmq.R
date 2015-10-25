@@ -211,7 +211,7 @@ from.msgpack <- function(x) {
 #'
 r2r.server <- function(handler, addr=rmq.default.addr) {  
   unser.handler = function(x) {
-    handler(unserialize(x))
+    serialize(handler(unserialize(x)), connection=NULL)
   }
   
   r = rmq.server(unser.handler, addr)
@@ -232,6 +232,6 @@ r2r.server <- function(handler, addr=rmq.default.addr) {
 #' @family rmq functions
 #'
 r2r.call <- function(msg, addr = rmq.default.addr) {
-  rmq.call(serialize(msg, connection=NULL), addr)
+  unserialize(rmq.call(serialize(msg, connection=NULL), addr))
 }
 

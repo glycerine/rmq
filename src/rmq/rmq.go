@@ -355,7 +355,7 @@ func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 
 	VPrintf("rmq says: before client_main().\n")
 	reply, err := client_main(addr, msgpackRequest, deadline)
-	VPrintf("rmq says: after client_main().\n")
+	VPrintf("rmq says: after client_main(), err = '%#v'.\n", err)
 
 	if err != nil {
 		C.ReportErrorToR_NoReturn(C.CString(err.Error()))
