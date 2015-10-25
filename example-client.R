@@ -1,5 +1,7 @@
 ## file: example-client.R
 
+require(rmq)
+
 ## RMQ is, for the moment, a simple client/server system.
 ## This file example-client.R sends requests to
 ## a server which should be run before the client
@@ -12,12 +14,11 @@
 ## remotely.
 ##
 
-require(rmq)
-
 request=list()
 request$f = function(x) { diff(x) }
 request$arg = c(4,5,1)
 
 ## not run:
 r = r2r.call(request)
-r
+print("r is ")
+print(r)
