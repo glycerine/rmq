@@ -11,7 +11,6 @@ package main
 #include <string.h>
 #include <signal.h>
 #include "interface.h"
-extern int R_interrupts_pending;
 */
 import "C"
 
