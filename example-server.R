@@ -26,7 +26,7 @@ handler = function(x) {
     print("computing and returning x$f(x$arg)")    
     result=list()
     result$f.evaluated.with.arg = x$f(x$arg)
-    result$a.closure.returned = function() { paste(x) }
+    result$a.closure.carries.x = function() { paste(x) }
     result
 }
 
