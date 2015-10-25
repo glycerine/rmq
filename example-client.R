@@ -1,3 +1,6 @@
+#!/bin/bash
+exec R --vanilla -q --slave -e "source(file=pipe(\"tail -n +3 $0\"))" --args $@
+
 ## file: example-client.R
 
 require(rmq)

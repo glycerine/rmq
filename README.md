@@ -93,6 +93,11 @@ $yum
 > 
 ~~~
 
+## additional example scripts
+
+I've added two example scripts, `example-server.R` and `example-client.R`. These live in the top level of the repo. Run `example-server.R` first. Then in a different window, run `example-client.R`.
+
+
 See also the test.r2r.call() and test.r2r.server() examples which demonstrate transporting full blown R objects over the RMQ transport layer.
 
 ### copyright and license
