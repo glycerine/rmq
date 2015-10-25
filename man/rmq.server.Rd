@@ -19,11 +19,13 @@ Start an RMQ server, listening on specified IP and port.
 }
 \examples{
 \dontrun{
-   ## the simplest echo server
+   ## a) the simplest echo server - in R session #1.
    rmq.server(handler=function(msg) {msg}, addr="10.0.0.1:7777")
 
-  ## This second example is a simple handler
+  ## b) This second example is a simple handler
   ## that echos the input it receives, and adds a few other things.
+  ## This would also be in R session #1, as an alternative
+  ## to a) above.
  handler = function(x) {
    print("handler called back with argument x = ")
    print(x)
@@ -35,8 +37,22 @@ Start an RMQ server, listening on specified IP and port.
  }
  r = rmq.server(handler, addr=rmq.default.addr)
 
- ## lastly the client call
+ ## c) lastly the client call. In R session #2. You'll
+ ## always need to run c) after first starting the
+ ## the server using a) or b) above in a separate
+ ## R session.
  rmq.call("hello rmq!")
+
+ ## d) illustrate how the client call can pass complex
+ ## nested list structured data.
+ monster=list()
+ eyes=list()
+ eyes$description = c("red","glowing")
+ monster$eyes = eyes
+ monster$measurements = c(34, 22, 33)
+
+ ## finally, send the monster to the server.
+ rmq.call(monster)
 
 }
 }
