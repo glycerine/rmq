@@ -380,6 +380,9 @@ func main() {
 	// if you define the Go structures and use
 	// https://github.com/tinylib/msgp to generate the
 	// go struct <-> msgpack encoding/decoding boilerplate.
+	// The tinylib/msgp library uses go generate and is
+	// blazing fast. This also avoids maintaining a separate
+	// IDL file. Your Go source code is always the defining document.
 
 	var iface interface{}
 	C.callInitEmbeddedR()

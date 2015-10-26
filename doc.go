@@ -45,6 +45,13 @@ if not then adjust the ./ part of the package path).
 The code also serves as an example of how to
 use golang inside R.
 
+## embedding R in Golang
+
+While RMQ is mainly designed to embed Go under R, it defines functions,
+in particular toIface(), that make embedding R in Go quite easy too. See the comments and
+example in main() of the central rmq.go file (https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go)
+for a demonstration.
+
 
 */
 package rmq
