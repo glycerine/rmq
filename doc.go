@@ -170,7 +170,7 @@ func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 // SexpToIface() does the heavy lifting of converting from
 // an R value to a Go value. Initially just a subroutine
 // of the internal encodeRIntoMsgpack(), it is also useful
-// on its own for doing things, like embedding R inside Go.
+// on its own for doing things like embedding R inside Go.
 //
 // Currently VECSXP, REALSXP, INTSXP, RAWSXP, and STRSXP
 // are supported. In other words, we decode: lists,
