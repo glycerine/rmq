@@ -156,7 +156,7 @@ to.msgpack <- function(x) {
 #'
 #' Lists, numeric vectors, integer vectors, string vectors, and raw byte vectors are supported.
 #'
-#' @param x An raw byte vector of msgpack formatted bytes.
+#' @param x A raw byte vector of msgpack formatted bytes.
 #' @return The R object represented by x.
 #'
 #' @family rmq functions
