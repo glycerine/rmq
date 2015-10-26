@@ -109,6 +109,44 @@ extern "C" {
     return INTEGER(x)[i];
   }
 
+  void callInitEmbeddedR() {
+	char *my_argv[]= {(char*)"r.embedded.in.golang", (char*)"--silent", (char*)"--vanilla", (char*)"--slave"};
+    Rf_initEmbeddedR(sizeof(my_argv)/sizeof(my_argv[0]), my_argv);
+  }
+
+  // PRE: callInitEmbeddedR() has been called exactly once before entering.
+  // IMPORTANT: caller must PROTECT the returned SEXP and unprotect when done. Unless it is R_NilValue.
+  SEXP callParseEval(const char* evalme, int* evalErrorOccured) {
+    SEXP ans,expression, myCmd;
+    evalErrorOccured = 0;
+    ParseStatus parseStatusCode;
+
+    PROTECT(myCmd = mkString(evalme));
+
+    /* PARSE_NULL will not be returned by R_ParseVector 
+       typedef enum {
+       PARSE_NULL,
+       PARSE_OK,
+       PARSE_INCOMPLETE,
+       PARSE_ERROR,
+       PARSE_EOF
+       } ParseStatus;
+    */
+    PROTECT(expression = R_ParseVector(myCmd, 1, &parseStatusCode, R_NilValue));
+    if (parseStatusCode != PARSE_OK) {
+      UNPROTECT(2);
+      return R_NilValue;
+    }
+
+    ans = R_tryEval(VECTOR_ELT(expression,0), R_GlobalEnv, evalErrorOccured);
+    UNPROTECT(2);
+    // evalErrorOccured will be 1 if an error happened, and ans will be R_NilValue
+    return ans; // caller must protect and unprotect when done
+  }
+
+  void callEndEmbeddedR() {
+    Rf_endEmbeddedR(0);
+  }
 
 
   SEXP CallbackToHandler(SEXP handler_, SEXP arg_, SEXP rho_) {

@@ -2,7 +2,7 @@ package main
 
 //
 // Copyright 2015 Jason E. Aten
-// License: Apache 2.0
+// License: Apache 2.0. http://www.apache.org/licenses/LICENSE-2.0
 //
 
 /*
@@ -27,6 +27,7 @@ import (
 	"unsafe"
 
 	"github.com/gorilla/websocket"
+	"github.com/shurcooL/go-goon"
 	"github.com/ugorji/go/codec"
 )
 
@@ -99,7 +100,7 @@ var upgrader = websocket.Upgrader{} // use default options
 // regularly call R_CheckUserInterrupt(), the
 // user can stop the server by pressing ctrl-c
 // at the R-console. The go-runtime, as embedded
-// in the c-shared library, is not used to being
+// in the c-shared library, is not accustomed to being
 // embedded yet, and so its (system) signal handling
 // facilities (e.g. signal.Notify) should *not* be
 // used. We go to great pains to actually preserve
@@ -349,10 +350,50 @@ func Callcount() C.SEXP {
 }
 
 func main() {
-	// We need the main function to make possible
+	// We always need a main() function to make possible
 	// CGO compiler to compile the package as C shared library
 	// The 'import "C"' at the top of the file is also required
 	// in order to export functions marked with //export
+
+	// Note that main() is not run when the .so library is loaded.
+
+	// However, since this is main, it is also the natural place
+	// to give an example also of how to
+	// embed R in a Go program, should you wish to do that as
+	// well.
+
+	// Note that the following go code is an optional demonstration,
+	// and not a part of the R package rmq functionality at its core.
+
+	// Introduction to embedding R:
+	//
+	// While RMQ is mainly designed to embed Go under R, it
+	// defines functions that make embedding R in Go
+	// quite easy too. We use toIface() to generate
+	// a go inteface{} value. For simple uses, this may be
+	// more than enough.
+	//
+	// If you wish to turn results into
+	// a pre-defined Go structure, the interface{} value could
+	// transformed into msgpack (as in encodeRIntoMsgpack())
+	// and from there automatically parsed into Go structures
+	// if you define the Go structures and use
+	// https://github.com/tinylib/msgp to generate the
+	// go struct <-> msgpack encoding/decoding boilerplate.
+
+	var iface interface{}
+	C.callInitEmbeddedR()
+	myRScript := "rnorm(100)"   // generate 100 Gaussian(0,1) samples
+	var evalErrorOccurred C.int //
+	r := C.callParseEval(C.CString(myRScript), &evalErrorOccurred)
+	if evalErrorOccurred == 0 && r != C.R_NilValue {
+		C.Rf_protect(r)
+		iface = toIface(r)
+		fmt.Printf("\n Embedding R in Golang example: I got back from evaluating myRScript:\n")
+		goon.Dump(iface)
+		C.Rf_unprotect(1) // unprotect r
+	}
+	C.callEndEmbeddedR()
 }
 
 var count int

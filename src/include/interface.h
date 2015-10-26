@@ -13,6 +13,8 @@
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
 #include <R_ext/Utils.h>
+#include <R_ext/Parse.h>
+#include <Rembedded.h>
 #include <signal.h>
 
 #ifdef __cplusplus
@@ -42,6 +44,15 @@ unsigned long int get_signint_handler();
   double get_real_elt(SEXP x, int i);
 
   int get_int_elt(SEXP x, int i);
+
+  void callInitEmbeddedR();
+
+  // PRE: callInitEmbeddedR() has been called exactly once before entering.
+  // IMPORTANT: caller must PROTECT the returned SEXP and unprotect when done. Unless it is R_NilValue.
+  SEXP callParseEval(const char* evalme, int* evalErrorOccurred);
+
+  void callEndEmbeddedR();
+
 
 #ifdef __cplusplus
 }
