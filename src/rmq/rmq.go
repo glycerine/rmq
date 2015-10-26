@@ -369,7 +369,7 @@ func main() {
 	//
 	// While RMQ is mainly designed to embed Go under R, it
 	// defines functions that make embedding R in Go
-	// quite easy too. We use toIface() to generate
+	// quite easy too. We use SexpToIface() to generate
 	// a go inteface{} value. For simple uses, this may be
 	// more than enough.
 	//
@@ -391,7 +391,7 @@ func main() {
 	r := C.callParseEval(C.CString(myRScript), &evalErrorOccurred)
 	if evalErrorOccurred == 0 && r != C.R_NilValue {
 		C.Rf_protect(r)
-		iface = toIface(r)
+		iface = SexpToIface(r)
 		fmt.Printf("\n Embedding R in Golang example: I got back from evaluating myRScript:\n")
 		goon.Dump(iface)
 		C.Rf_unprotect(1) // unprotect r
@@ -730,9 +730,9 @@ func ToMsgpack(s C.SEXP) C.SEXP {
 }
 
 func encodeRIntoMsgpack(s C.SEXP) []byte {
-	iface := toIface(s)
+	iface := SexpToIface(s)
 
-	VPrintf("toIface returned: '%#v'\n", iface)
+	VPrintf("SexpToIface returned: '%#v'\n", iface)
 
 	if iface == nil {
 		return []byte{}
@@ -748,8 +748,18 @@ func encodeRIntoMsgpack(s C.SEXP) []byte {
 	return w.Bytes()
 }
 
-func toIface(s C.SEXP) interface{} {
-	// generate a go map or slice or scalar value, then encode it
+// SexpToIface() does the heavy lifting of converting from
+// an R value to a Go value. Initially just a subroutine
+// of the internal encodeRIntoMsgpack(), it is also useful
+// on its own for doing things like embedding R inside Go.
+//
+// Currently VECSXP, REALSXP, INTSXP, RAWSXP, and STRSXP
+// are supported. In other words, we decode: lists,
+// numeric vectors, integer vectors, raw byte vectors,
+// string vectors, and recursively defined list elements.
+// If list elements are named, the named list is turned
+// into a map in Go.
+func SexpToIface(s C.SEXP) interface{} {
 
 	n := int(C.Rf_xlength(s))
 	if n == 0 {
@@ -768,7 +778,7 @@ func toIface(s C.SEXP) interface{} {
 		if rnamesLen > 0 {
 			myMap := map[string]interface{}{}
 			for i := 0; i < rnamesLen; i++ {
-				myMap[C.GoString(C.get_string_elt(rnames, C.int(i)))] = toIface(C.VECTOR_ELT(s, C.R_xlen_t(i)))
+				myMap[C.GoString(C.get_string_elt(rnames, C.int(i)))] = SexpToIface(C.VECTOR_ELT(s, C.R_xlen_t(i)))
 			}
 			VPrintf("VECSXP myMap = '%#v'\n", myMap)
 			return myMap
@@ -776,7 +786,7 @@ func toIface(s C.SEXP) interface{} {
 			// else: no names, so we treat it as an array instead of as a map
 			mySlice := make([]interface{}, n)
 			for i := 0; i < n; i++ {
-				mySlice[i] = toIface(C.VECTOR_ELT(s, C.R_xlen_t(i)))
+				mySlice[i] = SexpToIface(C.VECTOR_ELT(s, C.R_xlen_t(i)))
 			}
 			VPrintf("VECSXP mySlice = '%#v'\n", mySlice)
 			return mySlice

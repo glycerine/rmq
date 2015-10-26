@@ -48,7 +48,7 @@ use golang inside R.
 ## embedding R in Golang
 
 While RMQ is mainly designed to embed Go under R, it defines functions,
-in particular toIface(), that make embedding R in Go quite easy too. See the comments and
+in particular SexpToIface(), that make embedding R in Go quite easy too. See the comments and
 example in main() of the central rmq.go file (https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go)
 for a demonstration.
 
@@ -165,4 +165,22 @@ func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 	// See the actually implementation here:
 	// https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go
 	return addr_
+}
+
+// SexpToIface() does the heavy lifting of converting from
+// an R value to a Go value. Initially just a subroutine
+// of the internal encodeRIntoMsgpack(), it is also useful
+// on its own for doing things, like embedding R inside Go.
+//
+// Currently VECSXP, REALSXP, INTSXP, RAWSXP, and STRSXP
+// are supported. In other words, we decode: lists,
+// numeric vectors, integer vectors, raw byte vectors,
+// string vectors, and recursively defined list elements.
+// If list elements are named, the named list is turned
+// into a map in Go.
+func SexpToIface(s C.SEXP) interface{} {
+	// This is a stub for documentation of API and search purposes.
+	// See the actually implementation here:
+	// https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go
+	return interface{}(nil)
 }
