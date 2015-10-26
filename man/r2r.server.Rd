@@ -6,6 +6,11 @@
 \usage{
 r2r.server(handler, addr = rmq.default.addr)
 }
+\arguments{
+\item{handler}{A handler R function taking a single argument}
+
+\item{addr}{A string of "IP:port" format. The server will bind \code{addr}, and it must be available. Defaults to \code{rmq.default.addr}, which is "127.0.0.1:9090".}
+}
 \description{
 \code{r2r.call} calls on R's native \code{serialize()} function,
 the encodes those bytes in msgpack and sends them over

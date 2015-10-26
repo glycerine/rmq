@@ -26,6 +26,19 @@
 #'  \code{\link{from.msgpack}} diretly for situations that do not
 #' require remote procedure call or websockets.
 #'
+#' In summary, see \code{\link{rmq.server}} and \code{\link{rmq.call}} for
+#' the basic RPC over websocket functionality that allows inter-operations
+#' with other languages using msgpack2. Check out
+#' \code{\link{r2r.server}} and \code{\link{r2r.call}} for R-to-R
+#' object transfer. See \code{\link{to.msgpack}} and \code{\link{from.msgpack}}
+#' for stand-alone fast msgpack2 serialization within an R session.
+#' The default listening address is defined in \code{\link{rmq.default.addr}}.
+#' This overview of RMQ is found under the title \code{\link{rmq}}.
+#' The package comes with two simple example scripts that illustrate
+#' the basic client and server functions. See \url{https://github.com/glycerine/rmq/blob/master/example-client.R}
+#' and \url{https://github.com/glycerine/rmq/blob/master/example-server.R}
+#' in the source package for these examples.
+#' 
 #' @references \url{https://github.com/glycerine/rmq}, \url{http://msgpack.org}
 #' @docType package
 #' @name rmq

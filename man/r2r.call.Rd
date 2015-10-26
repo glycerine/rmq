@@ -6,6 +6,11 @@
 \usage{
 r2r.call(msg, addr = rmq.default.addr)
 }
+\arguments{
+\item{msg}{An R object. Can be a list. Internally this will be serialized using \code{serialize}, then converted into a msgpack binary array and sent to the server.}
+
+\item{addr}{A string of "IP:port" format. The server will bind \code{addr}, and it must be available. Defaults to \code{rmq.default.addr}, which is "127.0.0.1:9090".}
+}
 \description{
 \code{r2r.call()} is the client counter-part to \code{r2r.server()}
 }
