@@ -7,7 +7,7 @@
 from.msgpack(x)
 }
 \arguments{
-\item{x}{An raw byte vector of msgpack formatted bytes.}
+\item{x}{A raw byte vector of msgpack formatted bytes.}
 }
 \value{
 The R object represented by x.
