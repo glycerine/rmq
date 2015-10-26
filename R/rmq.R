@@ -61,7 +61,7 @@ rmq.default.addr <- "127.0.0.1:9090"
 #' @examples
 #' \dontrun{ 
 #'    ## a) the simplest echo server - run this in R session #1. Assumes port
-#'    ##    9090 (defined in \code{rmq.default.addr}) is available locally.
+#'    ##    9090 (defined in package variable rmq.default.addr) is available locally.
 #'    rmq.server(handler=function(msg) {msg})
 #'
 #'   ## b) This second example is a simple handler

@@ -20,7 +20,7 @@ Start an RMQ server, listening on specified IP and port.
 \examples{
 \dontrun{
    ## a) the simplest echo server - run this in R session #1. Assumes port
-   ##    9090 (defined in \\code{rmq.default.addr}) is available locally.
+   ##    9090 (defined in package variable rmq.default.addr) is available locally.
    rmq.server(handler=function(msg) {msg})
 
   ## b) This second example is a simple handler
