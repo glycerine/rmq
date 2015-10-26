@@ -1,5 +1,5 @@
 /*
-Sumary: rmq passes msgpack2 messages over websockets between Golang and the R stats language. It is an R package.
+Summary: rmq passes msgpack2 messages over websockets between Golang and the R statistical language. It is an R package.
 
 # rmq: R Messaging and Queuing
 
@@ -11,18 +11,18 @@ The much anticipated Go 1.5 release brought strong support for building C-style 
 
 Package rmq provides messaging based on msgpack and websockets. It demonstrates calling from R into Golang (Go) libraries to extend R with functionality available in Go.
 
-We use the Go library https://github.com/ugorji/go codec for msgpack encoding and decoding. This is a high performance implementation. We use it in a mode where it only supports the updated msgpack 2 (current) spec. This is critical for interoperability with other compiled languages that distiguish between utf8 strings and binary blobs (otherwise embedded '\0' zeros in blobs cause problems).
+We use the Go library https://github.com/ugorji/go codec for msgpack encoding and decoding. This is a high performance implementation. We use it in a mode where it only supports the updated msgpack 2 (current) spec. This is critical for interoperability with other compiled languages that distinguish between utf8 strings and binary blobs (otherwise embedded '\0' zeros in blobs cause problems).
 
-For websockets, we use the terrific https://github.com/gorilla/websocket library. As time permits in the future, we may extend more features aiming towards message queuing as well. The gorilla library supports securing your communication with TLS certs.
+For websockets, we use the terrific https://github.com/gorilla/websocket library. As time permits in the future, we may extend more features aiming towards message queuing as well. The gorilla library supports securing your communication with TLS certificates.
 
 ##Status
 
-Excellent. Tested on OSX and Linux. Documentation has been written and is available. The package is functionally complete for the RPC over websockets and msgpack based serialization.  After interactive usage, I added SIGINT handling so that the web-server can be stopped during development with a simple ctrl-c at the R console. The client side will be blocked during calls (it does not poll back to R while waiting on the network) but has a configurable timeout (default 5 seconds), that allows easy client-side error handling.
+Excellent. Tested on OSX and Linux. Documentation has been written and is available. The package is functionally complete for the RPC over websockets and msgpack based serialization.  After interactive usage, I added SIGINT handling so that the web-server can be stopped during development with a simple Ctrl-c at the R console. The client side will be blocked during calls (it does not poll back to R while waiting on the network) but has a configurable timeout (default 5 seconds), that allows easy client-side error handling.
 
 ## structure of this repo
 
 This repository is mainly structured as an R package. It is
-designed to be built and installed into an R (staticial environment)
+designed to be built and installed into an R (statistical environment)
 installation, using the standard tools for R.
 
 This package doesn't directly create a re-usable go library. Instead
@@ -51,7 +51,7 @@ import "C"
 // is the awesome https://github.com/ugorji/go/tree/master/codec
 // library from Ugorji Nwoke.
 func FromMsgpack(s C.SEXP) C.SEXP {
-	// This is a stub to make API doc and searchable.
+	// This is a stub for documentation of API and search purposes.
 	// See the actually implementation here:
 	// https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go
 	return s
@@ -64,7 +64,7 @@ func FromMsgpack(s C.SEXP) C.SEXP {
 // is the awesome https://github.com/ugorji/go/tree/master/codec
 // library from Ugorji Nwoke.
 func ToMsgpack(s C.SEXP) C.SEXP {
-	// This is a stub to make API doc and searchable.
+	// This is a stub for documentation of API and search purposes.
 	// See the actually implementation here:
 	// https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go
 	return s
@@ -115,7 +115,7 @@ func ToMsgpack(s C.SEXP) C.SEXP {
 // creates heartache and crashes.
 //
 func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
-	// This is a stub to make API doc and searchable.
+	// This is a stub for documentation of API and search purposes.
 	// See the actually implementation here:
 	// https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go
 	return addr_
@@ -144,7 +144,7 @@ func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
 // default is 5000 msec (5 seconds).
 //
 func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
-	// This is a stub to make API doc and searchable.
+	// This is a stub for documentation of API and search purposes.
 	// See the actually implementation here:
 	// https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go
 	return addr_
