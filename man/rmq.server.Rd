@@ -19,8 +19,9 @@ Start an RMQ server, listening on specified IP and port.
 }
 \examples{
 \dontrun{
-   ## a) the simplest echo server - in R session #1.
-   rmq.server(handler=function(msg) {msg}, addr="10.0.0.1:7777")
+   ## a) the simplest echo server - run this in R session #1. Assumes port
+   ##    9090 (defined in \\code{rmq.default.addr}) is available locally.
+   rmq.server(handler=function(msg) {msg})
 
   ## b) This second example is a simple handler
   ## that echos the input it receives, and adds a few other things.
@@ -35,7 +36,7 @@ Start an RMQ server, listening on specified IP and port.
    reply$input = x
    reply
  }
- r = rmq.server(handler, addr=rmq.default.addr)
+ r = rmq.server(handler)
 
  ## c) lastly the client call. In R session #2. You'll
  ## always need to run c) after first starting the
