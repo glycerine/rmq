@@ -51,7 +51,7 @@ extern "C" {
   // the host process (https://github.com/golang/go/issues/13034)
   // as of October 2015/ go1.5.1.
   //
-  // See the init() function in rmq.go for th logic that
+  // See the init() function in rmq.go for the logic that
   // restores the signal handlers.
   //
   void __attribute__ ((constructor)) my_init(void) {
