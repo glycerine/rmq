@@ -14,8 +14,6 @@ package main
 */
 import "C"
 
-//go:generate msgp
-
 import (
 	"bytes"
 	"fmt"
@@ -36,26 +34,6 @@ import (
 func init() {
 	C.restore_all_starting_signal_handlers()
 }
-
-// inside test struct for checking serialization
-type Subload struct {
-	A string
-	B int
-	F []float64
-}
-
-// outside test struct for checking serialization
-type Payload struct {
-	Sub  Subload
-	D    []string
-	E    []int32
-	G    []float64
-	Blob []byte
-}
-
-//var DefaultAddr = "localhost:8081"
-
-//var R_serialize_fun C.SEXP
 
 func getAddr(addr_ C.SEXP) (*net.TCPAddr, error) {
 
@@ -82,9 +60,6 @@ func getTimeoutMsec(timeout_msec_ C.SEXP) (int, error) {
 }
 
 var upgrader = websocket.Upgrader{} // use default options
-
-// ListenAndServe is the server part that expects calls from client
-// in the form of RmqWebsocketCall() invocations.
 
 //export ListenAndServe
 //
