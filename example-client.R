@@ -21,7 +21,6 @@ request=list()
 request$f = function(x) { diff(x) }
 request$arg = c(4,5,1)
 
-## not run:
 r = r2r.call(request)
 print("r is ")
 print(r)
