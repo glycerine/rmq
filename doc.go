@@ -3,13 +3,23 @@ Summary: rmq passes msgpack2 messages over websockets between Golang and the R s
 
 # rmq: R Messaging and Queuing
 
-### Or: How to utilize Go libraries from R.
+## Or: How to utilize Go libraries from R.
 
 The much anticipated Go 1.5 release brought strong support for building C-style shared libraries (.so files) from Go source code and libraries.
 
 *This is huge*. It opens up many exciting new possibilities. In this project (rmq), we explore using this new capability to extend R with Go libraries.
 
 Package rmq provides messaging based on msgpack and websockets. It demonstrates calling from R into Golang (Go) libraries to extend R with functionality available in Go.
+
+## why msgpack
+
+Msgpack is binary and self-describing. It can be extremely fast to parse. Moreover I don't have to worry about where to get the schema .proto file. The thorny problem of how to *create* new types of objects when I'm inside R just goes away. The data is self-describing, and new structures can be created at run-time.
+
+Msgpack supports a similar forward evolution/backwards compatibility strategy as protobufs. Hence it allows incremental rolling upgrades of large compute clusters using it as a protocol.  That was the whole raison d'etre of protobufs. Old code ignores new data fields. New code uses defaults for missing fields when given old data.
+
+Icing on the cake: msgpack (like websocket) is usable from javascript in the browser (unlike most everything else). Because it is very simple, msgpack has massive cross-language support (55 bindings are listed at http://msgpack.org).  Overall, msgpack is flexible while being fast, simple and widely supported, making it a great fit for data exchange between interpretted and compiled environments.
+
+## implementation
 
 We use the Go library https://github.com/ugorji/go codec for msgpack encoding and decoding. This is a high performance implementation. We use it in a mode where it only supports the updated msgpack 2 (current) spec. This is critical for interoperability with other compiled languages that distinguish between utf8 strings and binary blobs (otherwise embedded '\0' zeros in blobs cause problems).
 
