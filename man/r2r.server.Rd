@@ -2,7 +2,7 @@
 % Please edit documentation in R/rmq.R
 \name{r2r.server}
 \alias{r2r.server}
-\title{Start a server expecting serialized then msgpacked R objects.}
+\title{Start a server expecting serialized and msgpacked R objects.}
 \usage{
 r2r.server(handler, addr = rmq.default.addr)
 }
@@ -12,8 +12,9 @@ r2r.server(handler, addr = rmq.default.addr)
 \item{addr}{A string of "IP:port" format. The server will bind \code{addr}, and it must be available. Defaults to \code{rmq.default.addr}, which is "127.0.0.1:9090".}
 }
 \description{
-\code{r2r.call} calls on R's native \code{serialize()} function,
-the encodes those bytes in msgpack and sends them over
+Run a server dedicated to handling R objects. \code{r2r.call}
+calls on R's native \code{serialize()} function,
+which encodes those bytes in msgpack and sends them over
 to a waiting \code{r2r.server}, which turns them back
 into R objects before passing them to the handler.
 }

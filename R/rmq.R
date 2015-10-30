@@ -168,10 +168,11 @@ from.msgpack <- function(x) {
 }
 
 
-#' Start a server expecting serialized then msgpacked R objects.
+#' Start a server expecting serialized and msgpacked R objects.
 #'
-#' \code{r2r.call} calls on R's native \code{serialize()} function,
-#' the encodes those bytes in msgpack and sends them over
+#' Run a server dedicated to handling R objects. \code{r2r.call}
+#' calls on R's native \code{serialize()} function,
+#' which encodes those bytes in msgpack and sends them over
 #' to a waiting \code{r2r.server}, which turns them back
 #' into R objects before passing them to the handler.
 #'
