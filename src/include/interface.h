@@ -45,6 +45,12 @@ unsigned long int get_signint_handler();
 
   int get_int_elt(SEXP x, int i);
 
+  void set_lglsxp_true(SEXP lgl, int i);
+  void set_lglsxp_false(SEXP lgl, int i);
+  int get_lglsxp(SEXP lgl, int i);
+
+  unsigned char* get_raw_elt_ptr(SEXP raw, int i);
+  
   void callInitEmbeddedR();
 
   // PRE: callInitEmbeddedR() has been called exactly once before entering.

@@ -16,6 +16,7 @@ import "C"
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"net"
 	"net/http"
@@ -105,7 +106,7 @@ var upgrader = websocket.Upgrader{} // use default options
 // facilities (e.g. signal.Notify) should *not* be
 // used. We go to great pains to actually preserve
 // the signal handling that R sets up and expects,
-// and allow the go runtime to see any signals just
+// as allowing the go runtime to see any signals just
 // creates heartache and crashes.
 //
 func ListenAndServe(addr_ C.SEXP, handler_ C.SEXP, rho_ C.SEXP) C.SEXP {
@@ -553,6 +554,23 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 				}
 				return stringSlice
 
+			case bool:
+				sxpTy = C.LGLSXP
+				boolSlice := C.allocVector(sxpTy, C.R_xlen_t(lenval))
+				C.Rf_protect(boolSlice)
+				for i := range val {
+					switch val[i].(bool) {
+					case true:
+						C.set_lglsxp_true(boolSlice, C.int(i))
+					case false:
+						C.set_lglsxp_false(boolSlice, C.int(i))
+					}
+				}
+				if depth != 0 {
+					C.Rf_unprotect(1) // unprotect for boolSlice, now that we are returning it
+				}
+				return boolSlice
+
 			case int64:
 				// we can only realistically hope to preserve 53 bits worth here.
 				// todo? unless... can we require bit64 package be available somehow?
@@ -670,6 +688,18 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
 	case nil:
 		return C.R_NilValue
+
+	case bool:
+		boolmsg := C.allocVector(C.LGLSXP, C.R_xlen_t(1))
+		if depth == 0 {
+			C.Rf_protect(boolmsg)
+		}
+		if val {
+			C.set_lglsxp_true(boolmsg, 0)
+		} else {
+			C.set_lglsxp_false(boolmsg, 0)
+		}
+		return boolmsg
 
 	default:
 		fmt.Printf("unknown type in type switch, val = %#v.  type = %T.\n", val, val)
@@ -854,7 +884,17 @@ func SexpToIface(s C.SEXP) interface{} {
 	case C.BUILTINSXP:
 		VPrintf("encodeRIntoMsgpack sees BUILTINSXP\n")
 	case C.LGLSXP:
-		VPrintf("encodeRIntoMsgpack sees LGLSXP\n")
+		mySlice := make([]bool, n)
+		for i := 0; i < n; i++ {
+			switch C.get_lglsxp(s, C.int(i)) {
+			case 0:
+				mySlice[i] = false
+			case 1:
+				mySlice[i] = true
+			}
+		}
+		VPrintf("LGLSXP mySlice = '%#v'\n", mySlice)
+		return mySlice
 	case C.CPLXSXP:
 		VPrintf("encodeRIntoMsgpack sees CPLXSXP\n")
 	case C.DOTSXP:
@@ -905,4 +945,89 @@ func makeSortedSlicesFromMap(m map[string]interface{}) ([]string, []interface{})
 		val[i] = so[i].iface
 	}
 	return key, val
+}
+
+//export ReadMsgpackFrame
+//
+// ReadMsgpackFrame reads the msgpack frame at byteOffset in rawStream, decodes the
+// 2-5 bytes of a msgpack binary array (either bin8, bin16, or bin32), and returns
+// and the decoded-into-R object and the next byteOffset to use.
+//
+func ReadMsgpackFrame(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
+
+	var start int
+	if C.TYPEOF(byteOffset) == C.REALSXP {
+		start = int(C.get_real_elt(byteOffset, 0))
+	} else if C.TYPEOF(byteOffset) == C.INTSXP {
+		start = int(C.get_int_elt(byteOffset, 0))
+	} else {
+		C.ReportErrorToR_NoReturn(C.CString("read.msgpack.frame(x, byteOffset) requires byteOffset to be a numeric byte-offset number."))
+	}
+
+	// rawStream must be a RAWSXP
+	if C.TYPEOF(rawStream) != C.RAWSXP {
+		C.ReportErrorToR_NoReturn(C.CString("read.msgpack.frame(x, byteOffset) requires x be a RAW vector of bytes."))
+	}
+
+	n := int(C.Rf_xlength(rawStream))
+	if n == 0 {
+		return C.R_NilValue
+	}
+
+	if start >= n {
+		C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("read.msgpack.frame(x, byteOffset) error: byteOffset(%d) is beyond the length of x (x has len %d).", start, n)))
+	}
+
+	var decoder [5]byte
+	C.memcpy(unsafe.Pointer(&decoder[0]), unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.int(start))), C.size_t(5))
+	headerSz, _, totalSz, err := DecodeMsgpackBinArrayHeader(decoder[:])
+	if err != nil {
+		C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("ReadMsgpackFrame error trying to decode msgpack frame: %s", err)))
+	}
+
+	if start+totalSz > n {
+		C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("read.msgpack.frame(x, byteOffset) error: byteOffset(%d) plus the frames size(%d) goes beyond the length of x (x has len %d).", start, totalSz, n)))
+	}
+
+	bytes := make([]byte, totalSz)
+	C.memcpy(unsafe.Pointer(&bytes[0]), unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.int(start))), C.size_t(totalSz))
+
+	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(2))
+	C.Rf_protect(returnList)
+	rObject := decodeMsgpackToR(bytes[headerSz:])
+	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(0), C.Rf_ScalarReal(C.double(float64(start+totalSz))))
+	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(1), rObject)
+	C.Rf_unprotect(1) // unprotect for returnList, now that we are returning it
+	return returnList
+}
+
+func DecodeMsgpackBinArrayHeader(p []byte) (headerSize int, payloadSize int, totalFrameSize int, err error) {
+	lenp := len(p)
+
+	switch p[0] {
+	case 0xc4: // msgpackBin8
+		if lenp < 2 {
+			err = fmt.Errorf("DecodeMsgpackBinArrayHeader error: p len (%d) too small", lenp)
+			return
+		}
+		headerSize = 2
+		payloadSize = int(p[1])
+	case 0xc5: // msgpackBin16
+		if lenp < 3 {
+			err = fmt.Errorf("DecodeMsgpackBinArrayHeader error: p len (%d) too small", lenp)
+			return
+		}
+		headerSize = 3
+		payloadSize = int(binary.BigEndian.Uint16(p[1:3]))
+	case 0xc6: // msgpackBin32
+		if lenp < 5 {
+			err = fmt.Errorf("DecodeMsgpackBinArrayHeader error: p len (%d) too small", lenp)
+			return
+		}
+		headerSize = 5
+		payloadSize = int(binary.BigEndian.Uint32(p[1:5]))
+	}
+
+	totalFrameSize = headerSize + payloadSize
+	return
 }

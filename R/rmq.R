@@ -168,6 +168,23 @@ from.msgpack <- function(x) {
 }
 
 
+#' create an R object from the head of a stream of framed binarray msgpack bytes
+#'
+#' Given a vector of raw bytes written in framed-msgpack format, \code{read.msgpack.frame} converts these into an list of 1) the next byteOffset to be used for reading the next frame; and 2) the correspending reified R object obtained from converting the frame at byteOffset from msgpack into R.
+#'
+#' @param x A raw byte vector of one or more bin-array-framed-msgpack objects.
+#' @param byteOffset specifies which object to return, namely the one starting at x[byteOffset]
+#' @return A list with two elements. The first is the next byteOffset that should be used to read the next object (the one after the one returned from the current call); the second is the R object represented by the frame starting at the supplied byteOffset.
+#'
+#' @family rmq functions
+#'
+#' @seealso \url{http://msgpack.org}
+#'
+read.msgpack.frame <- function(x, byteOffset) {
+  .Call("ReadMsgpackFrame", x, byteOffset)
+}
+
+
 #' Start a server expecting serialized and msgpacked R objects.
 #'
 #' Run a server dedicated to handling R objects. \code{r2r.call}

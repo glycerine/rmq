@@ -109,6 +109,22 @@ extern "C" {
     return INTEGER(x)[i];
   }
 
+  void set_lglsxp_true(SEXP lgl, int i) {
+    LOGICAL(lgl)[i] = 1;
+  }
+  
+  void set_lglsxp_false(SEXP lgl, int i) {
+    LOGICAL(lgl)[i] = 0;
+  }
+
+  int get_lglsxp(SEXP lgl, int i) {
+    return LOGICAL(lgl)[i];
+  }
+
+  unsigned char* get_raw_elt_ptr(SEXP raw, int i) {  
+    return &(RAW(raw)[i]);
+  }
+    
   void callInitEmbeddedR() {
 	char *my_argv[]= {(char*)"r.embedded.in.golang", (char*)"--silent", (char*)"--vanilla", (char*)"--slave"};
     Rf_initEmbeddedR(sizeof(my_argv)/sizeof(my_argv[0]), my_argv);

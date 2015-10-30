@@ -7,5 +7,6 @@ export(
        rmq.call,
        r2r.server,
        r2r.call,
-       rmq.default.addr
-       )
+       rmq.default.addr,
+       read.msgpack.frame
+)
