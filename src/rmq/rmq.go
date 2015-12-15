@@ -493,7 +493,7 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 
 	s := decodeHelper(r, 0)
 	if s != C.R_NilValue {
-		C.Rf_unprotect(1) // unprotect s before returning it
+		C.Rf_unprotect_ptr(s) // unprotect s before returning it
 	}
 	return s
 }
@@ -501,6 +501,10 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 const FLT_RADIX = 2
 const DBL_MANT_DIG = 53
 
+// new policy: decodeHelper should always return a protected s,
+// and the user/client/caller of decodeHelper() is responsible
+// for unprotecting s if they are embedding it. This is
+// much easier to audit for correctness.
 func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
 	VPrintf("decodeHelper() at depth %d, decoded type is %T\n", depth, r)
@@ -533,10 +537,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		lenval := len(val)
 		if lenval == 0 {
 			emptyvec := C.allocVector(C.NILSXP, C.R_xlen_t(0))
-
-			if depth == 0 {
-				C.Rf_protect(emptyvec)
-			}
+			C.Rf_protect(emptyvec)
 			return emptyvec
 		}
 
@@ -553,9 +554,9 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 				for i := range val {
 					C.SET_STRING_ELT(stringSlice, C.R_xlen_t(i), C.mkChar(C.CString(val[i].(string))))
 				}
-				if depth != 0 {
-					C.Rf_unprotect(1) // unprotect for stringSlice, now that we are returning it
-				}
+				//if depth != 0 {
+				//	C.Rf_unprotect(1) // unprotect for stringSlice, now that we are returning it
+				//}
 				return stringSlice
 
 			case bool:
@@ -570,9 +571,9 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 						C.set_lglsxp_false(boolSlice, C.int(i))
 					}
 				}
-				if depth != 0 {
-					C.Rf_unprotect(1) // unprotect for boolSlice, now that we are returning it
-				}
+				//if depth != 0 {
+				//C.Rf_unprotect(1) // unprotect for boolSlice, now that we are returning it
+				//}
 				return boolSlice
 
 			case int64:
@@ -614,9 +615,9 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 					C.WarnAndContinue(C.CString("integer precision lost while converting to double"))
 				}
 
-				if depth != 0 {
-					C.Rf_unprotect(1) // unprotect for numSlice, now that we are returning it
-				}
+				//if depth != 0 {
+				//	C.Rf_unprotect(1) // unprotect for numSlice, now that we are returning it
+				//}
 				return numSlice
 
 			case float64:
@@ -635,9 +636,9 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 					rhs = C.double(val[i].(float64))
 					*((*C.double)(unsafe.Pointer(uintptr(ptrNumSlice) + size*uintptr(i)))) = rhs
 				}
-				if depth != 0 {
-					C.Rf_unprotect(1) // unprotect for numSlice, now that we are returning it
-				}
+				//if depth != 0 {
+				//	C.Rf_unprotect(1) // unprotect for numSlice, now that we are returning it
+				//}
 				return numSlice
 
 			}
@@ -646,21 +647,19 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		intslice := C.allocVector(sxpTy, C.R_xlen_t(lenval))
 		C.Rf_protect(intslice)
 		for i := range val {
-			C.SET_VECTOR_ELT(intslice, C.R_xlen_t(i), decodeHelper(val[i], depth+1))
+			elt := decodeHelper(val[i], depth+1)
+			C.SET_VECTOR_ELT(intslice, C.R_xlen_t(i), elt)
+			C.Rf_unprotect_ptr(elt) // safely inside intslice now
 		}
-		if depth != 0 {
-			C.Rf_unprotect(1) // unprotect for intslice, now that we are returning it
-		}
+		//if depth != 0 {
+		//   C.Rf_unprotect(1) // unprotect for intslice, now that we are returning it
+		//}
 		return intslice
 
 	case map[string]interface{}:
 
 		s = C.allocVector(C.VECSXP, C.R_xlen_t(len(val)))
-		if depth == 0 {
-			// only protect the top parent of the returned value, recursively
-			// geneated are transitively protected by their parent.
-			C.Rf_protect(s)
-		}
+		C.Rf_protect(s)
 		names := C.allocVector(C.VECSXP, C.R_xlen_t(len(val)))
 		C.Rf_protect(names)
 
@@ -669,24 +668,22 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		for i := range sortedMapKey {
 
 			ele := decodeHelper(sortedMapVal[i], depth+1)
-			C.Rf_protect(ele)
 			C.SET_VECTOR_ELT(s, C.R_xlen_t(i), ele)
-			C.Rf_unprotect(1) // unprotect for ele, now that it is safely inside s.
+			C.Rf_unprotect_ptr(ele) // unprotect ele now that it is safely inside s.
 
 			ksexpString := C.Rf_mkString(C.CString(sortedMapKey[i]))
+			C.Rf_protect(ksexpString)
 			C.SET_VECTOR_ELT(names, C.R_xlen_t(i), ksexpString)
+			C.Rf_unprotect_ptr(ksexpString) // safely inside names
 		}
 		C.setAttrib(s, C.R_NamesSymbol, names)
-		C.Rf_unprotect(1) // unprotect for names, now that it is attached to s.
+		C.Rf_unprotect_ptr(names) // safely attached to s.
 
 	case []byte:
 		VPrintf("depth %d found []byte case: val = %#v\n", depth, val)
 
 		rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(len(val)))
-
-		if depth == 0 {
-			C.Rf_protect(rawmsg)
-		}
+		C.Rf_protect(rawmsg)
 		C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&val[0]), C.size_t(len(val)))
 		return rawmsg
 
@@ -695,9 +692,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
 	case bool:
 		boolmsg := C.allocVector(C.LGLSXP, C.R_xlen_t(1))
-		if depth == 0 {
-			C.Rf_protect(boolmsg)
-		}
+		C.Rf_protect(boolmsg)
 		if val {
 			C.set_lglsxp_true(boolmsg, 0)
 		} else {
@@ -996,10 +991,10 @@ func ReadMsgpackFrame(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	bytes := make([]byte, totalSz)
 	C.memcpy(unsafe.Pointer(&bytes[0]), unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.int(start))), C.size_t(totalSz))
 
-	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(2))
-	C.Rf_protect(returnList)
 	rObject := decodeMsgpackToR(bytes[headerSz:])
 	C.Rf_protect(rObject)
+	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(2))
+	C.Rf_protect(returnList)
 	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(0), C.Rf_ScalarReal(C.double(float64(start+totalSz))))
 	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(1), rObject)
 	C.Rf_unprotect(2) // unprotect for returnList, now that we are returning it
