@@ -999,9 +999,10 @@ func ReadMsgpackFrame(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(2))
 	C.Rf_protect(returnList)
 	rObject := decodeMsgpackToR(bytes[headerSz:])
+	C.Rf_protect(rObject)
 	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(0), C.Rf_ScalarReal(C.double(float64(start+totalSz))))
 	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(1), rObject)
-	C.Rf_unprotect(1) // unprotect for returnList, now that we are returning it
+	C.Rf_unprotect(2) // unprotect for returnList, now that we are returning it
 	return returnList
 }
 
