@@ -492,8 +492,10 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 	VPrintf("decoded value: %#v\n", r)
 
 	s := decodeHelper(r, 0)
-	if s != C.R_NilValue {
+	if true { // s != C.R_NilValue {
+		//fmt.Printf("jusr before top level unprot\n")
 		C.Rf_unprotect_ptr(s) // unprotect s before returning it
+		//fmt.Printf("just after top level unprot\n")
 	}
 	return s
 }
@@ -511,23 +513,33 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 	switch val := r.(type) {
 	case string:
 		VPrintf("depth %d found string case: val = %#v\n", depth, val)
-		return C.Rf_mkString(C.CString(val))
+		s = C.Rf_mkString(C.CString(val))
+		C.Rf_protect(s)
+		return s
 
 	case int:
 		VPrintf("depth %d found int case: val = %#v\n", depth, val)
-		return C.Rf_ScalarReal(C.double(float64(val)))
+		s = C.Rf_ScalarReal(C.double(float64(val)))
+		C.Rf_protect(s)
+		return s
 
 	case int32:
 		VPrintf("depth %d found int32 case: val = %#v\n", depth, val)
-		return C.Rf_ScalarReal(C.double(float64(val)))
+		s = C.Rf_ScalarReal(C.double(float64(val)))
+		C.Rf_protect(s)
+		return s
 
 	case int64:
 		VPrintf("depth %d found int64 case: val = %#v\n", depth, val)
-		return C.Rf_ScalarReal(C.double(float64(val)))
+		s = C.Rf_ScalarReal(C.double(float64(val)))
+		C.Rf_protect(s)
+		return s
 
 	case float64:
 		VPrintf("depth %d found float64 case: val = %#v\n", depth, val)
-		return C.Rf_ScalarReal(C.double(val))
+		s = C.Rf_ScalarReal(C.double(val))
+		C.Rf_protect(s)
+		return s
 
 	case []interface{}:
 		VPrintf("depth %d found []interface{} case: val = %#v\n", depth, val)
@@ -649,7 +661,11 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		for i := range val {
 			elt := decodeHelper(val[i], depth+1)
 			C.SET_VECTOR_ELT(intslice, C.R_xlen_t(i), elt)
-			C.Rf_unprotect_ptr(elt) // safely inside intslice now
+			if true { //elt != C.R_NilValue {
+				//fmt.Printf("jusr before intslice unprot\n")
+				C.Rf_unprotect_ptr(elt) // safely inside intslice now
+				//fmt.Printf("jusr after intslice unprot\n")
+			}
 		}
 		//if depth != 0 {
 		//   C.Rf_unprotect(1) // unprotect for intslice, now that we are returning it
@@ -669,15 +685,23 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
 			ele := decodeHelper(sortedMapVal[i], depth+1)
 			C.SET_VECTOR_ELT(s, C.R_xlen_t(i), ele)
+			//if ele != C.R_NilValue {
+			//fmt.Printf("just before sortedMapKey unprot\n")
 			C.Rf_unprotect_ptr(ele) // unprotect ele now that it is safely inside s.
+			//fmt.Printf("just after sortedMapKey unprot\n")
+			//}
 
 			ksexpString := C.Rf_mkString(C.CString(sortedMapKey[i]))
 			C.Rf_protect(ksexpString)
 			C.SET_VECTOR_ELT(names, C.R_xlen_t(i), ksexpString)
+			//fmt.Printf("just before ksexpString unprot\n")
 			C.Rf_unprotect_ptr(ksexpString) // safely inside names
+			//fmt.Printf("just after ksexpString unprot\n")
 		}
 		C.setAttrib(s, C.R_NamesSymbol, names)
+		//fmt.Printf("just before names unprot\n")
 		C.Rf_unprotect_ptr(names) // safely attached to s.
+		//fmt.Printf("just after names unprot\n")
 
 	case []byte:
 		VPrintf("depth %d found []byte case: val = %#v\n", depth, val)
@@ -688,7 +712,9 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		return rawmsg
 
 	case nil:
-		return C.R_NilValue
+		s = C.R_NilValue
+		C.Rf_protect(s)
+		return s
 
 	case bool:
 		boolmsg := C.allocVector(C.LGLSXP, C.R_xlen_t(1))
