@@ -521,6 +521,10 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		VPrintf("depth %d found int64 case: val = %#v\n", depth, val)
 		return C.Rf_ScalarReal(C.double(float64(val)))
 
+	case float64:
+		VPrintf("depth %d found float64 case: val = %#v\n", depth, val)
+		return C.Rf_ScalarReal(C.double(val))
+
 	case []interface{}:
 		VPrintf("depth %d found []interface{} case: val = %#v\n", depth, val)
 
