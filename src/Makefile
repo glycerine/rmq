@@ -49,7 +49,7 @@ build:
 install:
 	go version
 	tar --exclude dot[.]git -c  -f - vendor |gzip > vendor.tar.gz
-	cd ../.. && R CMD install rmq
+	cd ../.. && R CMD INSTALL rmq
 
 
 vtree:
