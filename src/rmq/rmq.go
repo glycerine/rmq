@@ -387,8 +387,8 @@ func main() {
 
 	var iface interface{}
 	C.callInitEmbeddedR()
-	myRScript := "rnorm(100)"   // generate 100 Gaussian(0,1) samples
-	var evalErrorOccurred C.int //
+	myRScript := "rnorm(100)" // generate 100 Gaussian(0,1) samples
+	var evalErrorOccurred C.int
 	r := C.callParseEval(C.CString(myRScript), &evalErrorOccurred)
 	if evalErrorOccurred == 0 && r != C.R_NilValue {
 		C.Rf_protect(r)
@@ -581,9 +581,9 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 				for i := range val {
 					switch val[i].(bool) {
 					case true:
-						C.set_lglsxp_true(boolSlice, C.int(i))
+						C.set_lglsxp_true(boolSlice, C.ulonglong(i))
 					case false:
-						C.set_lglsxp_false(boolSlice, C.int(i))
+						C.set_lglsxp_false(boolSlice, C.ulonglong(i))
 					}
 				}
 				return boolSlice
@@ -757,7 +757,7 @@ func ToMsgpack(s C.SEXP) C.SEXP {
 	rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(len(byteSlice)))
 	C.Rf_protect(rawmsg)
 	C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&byteSlice[0]), C.size_t(len(byteSlice)))
-	C.Rf_unprotect(1)
+	C.Rf_unprotect_ptr(rawmsg)
 
 	return rawmsg
 }
@@ -813,7 +813,7 @@ func SexpToIface(s C.SEXP) interface{} {
 		if rnamesLen > 0 {
 			myMap := map[string]interface{}{}
 			for i := 0; i < rnamesLen; i++ {
-				myMap[C.GoString(C.get_string_elt(rnames, C.int(i)))] = SexpToIface(C.VECTOR_ELT(s, C.R_xlen_t(i)))
+				myMap[C.GoString(C.get_string_elt(rnames, C.ulonglong(i)))] = SexpToIface(C.VECTOR_ELT(s, C.R_xlen_t(i)))
 			}
 			VPrintf("VECSXP myMap = '%#v'\n", myMap)
 			return myMap
@@ -832,7 +832,7 @@ func SexpToIface(s C.SEXP) interface{} {
 		VPrintf("encodeRIntoMsgpack sees REALSXP\n")
 		mySlice := make([]float64, n)
 		for i := 0; i < n; i++ {
-			mySlice[i] = float64(C.get_real_elt(s, C.int(i)))
+			mySlice[i] = float64(C.get_real_elt(s, C.ulonglong(i)))
 		}
 		VPrintf("VECSXP mySlice = '%#v'\n", mySlice)
 		return mySlice
@@ -842,7 +842,7 @@ func SexpToIface(s C.SEXP) interface{} {
 		VPrintf("encodeRIntoMsgpack sees INTSXP\n")
 		mySlice := make([]int, n)
 		for i := 0; i < n; i++ {
-			mySlice[i] = int(C.get_int_elt(s, C.int(i)))
+			mySlice[i] = int(C.get_int_elt(s, C.ulonglong(i)))
 		}
 		VPrintf("INTSXP mySlice = '%#v'\n", mySlice)
 		return mySlice
@@ -859,7 +859,7 @@ func SexpToIface(s C.SEXP) interface{} {
 		VPrintf("encodeRIntoMsgpack sees STRSXP\n")
 		mySlice := make([]string, n)
 		for i := 0; i < n; i++ {
-			mySlice[i] = C.GoString(C.get_string_elt(s, C.int(i)))
+			mySlice[i] = C.GoString(C.get_string_elt(s, C.ulonglong(i)))
 		}
 		VPrintf("STRSXP mySlice = '%#v'\n", mySlice)
 		return mySlice
@@ -891,7 +891,7 @@ func SexpToIface(s C.SEXP) interface{} {
 	case C.LGLSXP:
 		mySlice := make([]bool, n)
 		for i := 0; i < n; i++ {
-			switch C.get_lglsxp(s, C.int(i)) {
+			switch C.get_lglsxp(s, C.ulonglong(i)) {
 			case 0:
 				mySlice[i] = false
 			case 1:
@@ -984,7 +984,7 @@ func ReadMsgpackFrame(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	}
 
 	var decoder [5]byte
-	C.memcpy(unsafe.Pointer(&decoder[0]), unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.int(start))), C.size_t(5))
+	C.memcpy(unsafe.Pointer(&decoder[0]), unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.ulonglong(start))), C.size_t(5))
 	headerSz, _, totalSz, err := DecodeMsgpackBinArrayHeader(decoder[:])
 	if err != nil {
 		C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("ReadMsgpackFrame error trying to decode msgpack frame: %s", err)))
@@ -995,7 +995,7 @@ func ReadMsgpackFrame(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	}
 
 	bytes := make([]byte, totalSz)
-	C.memcpy(unsafe.Pointer(&bytes[0]), unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.int(start))), C.size_t(totalSz))
+	C.memcpy(unsafe.Pointer(&bytes[0]), unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.ulonglong(start))), C.size_t(totalSz))
 
 	rObject := decodeMsgpackToR(bytes[headerSz:])
 	C.Rf_protect(rObject)
@@ -1047,6 +1047,7 @@ func DecodeMsgpackBinArrayHeader(p []byte) (headerSize int, payloadSize int, tot
 // the terminating newline).
 //
 func ReadNewlineDelimJson(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
+	C.Rf_protect(rawStream)
 
 	var start int
 	if C.TYPEOF(byteOffset) == C.REALSXP {
@@ -1056,7 +1057,6 @@ func ReadNewlineDelimJson(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	} else {
 		C.ReportErrorToR_NoReturn(C.CString("read.ndjson(x, byteOffset) requires byteOffset to be a numeric byte-offset number."))
 	}
-
 	// rawStream must be a RAWSXP
 	if C.TYPEOF(rawStream) != C.RAWSXP {
 		C.ReportErrorToR_NoReturn(C.CString("read.ndjson(x, byteOffset) requires x be a RAW vector of bytes."))
@@ -1070,15 +1070,15 @@ func ReadNewlineDelimJson(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	if start >= n {
 		C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("read.ndjson(x, byteOffset) error: byteOffset(%d) is at or beyond the length of x (x has len %d).", start, n)))
 	}
+	// INVAR: start < n
 
 	// find the next newline or end of raw array
-	next := int(C.next_newline_pos(rawStream, C.long(start+1), C.long(n)))
-
+	next := int(C.next_newline_pos(rawStream, C.ulonglong(start+1), C.ulonglong(n)))
 	totalSz := next - start
 
 	bytes := make([]byte, totalSz)
-	C.memcpy(unsafe.Pointer(&bytes[0]), unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.int(start))), C.size_t(totalSz))
-
+	fromPtr := unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.ulonglong(start)))
+	C.memcpy(unsafe.Pointer(&bytes[0]), fromPtr, C.size_t(totalSz))
 	rObject := decodeJsonToR(bytes)
 	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(2))
 	C.Rf_protect(returnList)
@@ -1086,6 +1086,7 @@ func ReadNewlineDelimJson(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(1), rObject)
 	C.Rf_unprotect_ptr(rObject)
 	C.Rf_unprotect_ptr(returnList)
+	C.Rf_unprotect_ptr(rawStream)
 	return returnList
 }
 
@@ -1106,4 +1107,11 @@ func decodeJsonToR(reply []byte) C.SEXP {
 
 	s := decodeHelper(r, 0)
 	return s
+}
+
+// for debugging an unprotected variable s, call chk(s)
+func chk(s C.SEXP) {
+	if 0 == C.Rf_isProtected(s) {
+		panic(fmt.Sprintf("\n\n\n !!! what the heck: s (%p) is not protected!\n\n", s))
+	}
 }

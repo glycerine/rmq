@@ -96,40 +96,40 @@ extern "C" {
     SET_TYPEOF(*sexp, LANGSXP);
   }
 
-  const char* get_string_elt(SEXP x, int i) {
+  const char* get_string_elt(SEXP x, unsigned long long i) {
     return CHAR(STRING_ELT(x, i));
   }
 
-  double get_real_elt(SEXP x, int i) {
+  double get_real_elt(SEXP x, unsigned long long i) {
     return REAL(x)[i];
   }
 
 
-  int get_int_elt(SEXP x, int i) {
+  int get_int_elt(SEXP x, unsigned long long i) {
     return INTEGER(x)[i];
   }
 
-  void set_lglsxp_true(SEXP lgl, int i) {
+  void set_lglsxp_true(SEXP lgl, unsigned long long i) {
     LOGICAL(lgl)[i] = 1;
   }
   
-  void set_lglsxp_false(SEXP lgl, int i) {
+  void set_lglsxp_false(SEXP lgl, unsigned long long i) {
     LOGICAL(lgl)[i] = 0;
   }
 
-  int get_lglsxp(SEXP lgl, int i) {
+  int get_lglsxp(SEXP lgl, unsigned long long i) {
     return LOGICAL(lgl)[i];
   }
 
-  unsigned char* get_raw_elt_ptr(SEXP raw, int i) {  
+  unsigned char* get_raw_elt_ptr(SEXP raw, unsigned long long i) {  
     return &(RAW(raw)[i]);
   }
 
   // locate the next newline character in the raw array,
   // starting at beg, and up to but not including endx.
   // If not found, will return endx.
-  long next_newline_pos(SEXP raw, long beg, long endx) {  
-    long i;
+  unsigned long long next_newline_pos(SEXP raw, unsigned long long beg, unsigned long long endx) {  
+    unsigned long long i;
     for (i = beg; i < endx; i++) {
       if (RAW(raw)[i] == '\n') {
         return i;

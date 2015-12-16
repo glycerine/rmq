@@ -21,6 +21,8 @@
 extern "C" {
 #endif
 
+int Rf_isProtected(SEXP s); // debugging utility from R-3.x.x/src/main/memory.c
+  
 unsigned long int get_starting_signint_handler();
 unsigned long int get_signint_handler();
 
@@ -39,22 +41,22 @@ unsigned long int get_signint_handler();
   
   void WarnAndContinue(const char* msg);
 
-  const char* get_string_elt(SEXP x, int i);
+  const char* get_string_elt(SEXP x, unsigned long long i);
 
-  double get_real_elt(SEXP x, int i);
+  double get_real_elt(SEXP x, unsigned long long i);
 
-  int get_int_elt(SEXP x, int i);
+  int get_int_elt(SEXP x, unsigned long long i);
 
-  void set_lglsxp_true(SEXP lgl, int i);
-  void set_lglsxp_false(SEXP lgl, int i);
-  int get_lglsxp(SEXP lgl, int i);
+  void set_lglsxp_true(SEXP lgl, unsigned long long i);
+  void set_lglsxp_false(SEXP lgl, unsigned long long i);
+  int get_lglsxp(SEXP lgl, unsigned long long i);
 
   // locate the next newline character in the raw array,
   // starting at beg, and up to but not including endx.
   // If not found, will return endx.
-  long next_newline_pos(SEXP raw, long beg, long endx);
+  unsigned long long next_newline_pos(SEXP raw, unsigned long long beg, unsigned long long endx);
   
-  unsigned char* get_raw_elt_ptr(SEXP raw, int i);
+  unsigned char* get_raw_elt_ptr(SEXP raw, unsigned long long i);  
   
   void callInitEmbeddedR();
 
