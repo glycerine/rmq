@@ -26,7 +26,8 @@ r2r.call(msg, addr = rmq.default.addr)
 \seealso{
 Other rmq.functions: \code{\link{from.msgpack}},
   \code{\link{r2r.server}},
-  \code{\link{read.msgpack.frame}}, \code{\link{rmq.call}},
+  \code{\link{read.msgpack.frame}},
+  \code{\link{read.ndjson}}, \code{\link{rmq.call}},
   \code{\link{rmq.default.addr}}, \code{\link{rmq.server}},
   \code{\link{to.msgpack}}
 }

@@ -124,7 +124,20 @@ extern "C" {
   unsigned char* get_raw_elt_ptr(SEXP raw, int i) {  
     return &(RAW(raw)[i]);
   }
-    
+
+  // locate the next newline character in the raw array,
+  // starting at beg, and up to but not including endx.
+  // If not found, will return endx.
+  long next_newline_pos(SEXP raw, long beg, long endx) {  
+    long i;
+    for (i = beg; i < endx; i++) {
+      if (RAW(raw)[i] == '\n') {
+        return i;
+      }
+    }
+    return endx;
+  }
+  
   void callInitEmbeddedR() {
 	char *my_argv[]= {(char*)"r.embedded.in.golang", (char*)"--silent", (char*)"--vanilla", (char*)"--slave"};
     Rf_initEmbeddedR(sizeof(my_argv)/sizeof(my_argv[0]), my_argv);

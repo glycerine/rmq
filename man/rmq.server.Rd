@@ -62,7 +62,8 @@ Start an RMQ server, listening on specified IP and port.
 \seealso{
 Other rmq.functions: \code{\link{from.msgpack}},
   \code{\link{r2r.call}}, \code{\link{r2r.server}},
-  \code{\link{read.msgpack.frame}}, \code{\link{rmq.call}},
+  \code{\link{read.msgpack.frame}},
+  \code{\link{read.ndjson}}, \code{\link{rmq.call}},
   \code{\link{rmq.default.addr}}, \code{\link{to.msgpack}}
 }
 

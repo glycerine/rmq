@@ -49,6 +49,11 @@ unsigned long int get_signint_handler();
   void set_lglsxp_false(SEXP lgl, int i);
   int get_lglsxp(SEXP lgl, int i);
 
+  // locate the next newline character in the raw array,
+  // starting at beg, and up to but not including endx.
+  // If not found, will return endx.
+  long next_newline_pos(SEXP raw, long beg, long endx);
+  
   unsigned char* get_raw_elt_ptr(SEXP raw, int i);
   
   void callInitEmbeddedR();

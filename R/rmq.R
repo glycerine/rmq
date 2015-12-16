@@ -184,6 +184,23 @@ read.msgpack.frame <- function(x, byteOffset) {
   .Call("ReadMsgpackFrame", x, byteOffset)
 }
 
+#' create an R object from the head of a stream of newline-delimited JSON bytes
+#'
+#' Given a vector of raw bytes written in newline-delimited-JSON format, \code{read.ndjson} converts these into an list of 1) the next byteOffset to be used for reading the next frame (just after the next newline); and 2) the correspending reified R object obtained from converting the line at byteOffset into R.
+#'
+#' @param x A raw byte vector of one or more newline-delimited-JSON objects.
+#' @param byteOffset specifies which object to return, namely the one starting at x[byteOffset]
+#' @return A list with two elements. The first is the next byteOffset that should be used to read the next object (the one after the one returned from the current call); the second is the R object represented by the frame starting at the supplied byteOffset.
+#'
+#' @family rmq functions
+#'
+#' @seealso \url{https://github.com/ugorji/go}
+#' @seealso \url{http://ndjson.org/}
+#'
+read.ndjson <- function(x, byteOffset) {
+  .Call("ReadNewlineDelimJson", x, byteOffset)
+}
+
 
 #' Start a server expecting serialized and msgpacked R objects.
 #'

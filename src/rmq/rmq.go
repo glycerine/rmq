@@ -453,6 +453,7 @@ func panicOn(err error) {
 type MsgpackHelper struct {
 	initialized bool
 	mh          codec.MsgpackHandle
+	jh          codec.JsonHandle
 }
 
 func (m *MsgpackHelper) init() {
@@ -469,6 +470,11 @@ func (m *MsgpackHelper) init() {
 	m.mh.WriteExt = true
 	m.mh.SignedInteger = true
 	m.mh.Canonical = true // sort maps before writing them
+
+	// JSON
+	m.jh.MapType = reflect.TypeOf(map[string]interface{}(nil))
+	m.jh.SignedInteger = true
+	m.jh.Canonical = true // sort maps before writing them
 
 	m.initialized = true
 }
@@ -492,7 +498,9 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 	VPrintf("decoded value: %#v\n", r)
 
 	s := decodeHelper(r, 0)
-	C.Rf_unprotect_ptr(s) // unprotect s before returning it
+	if s != nil {
+		C.Rf_unprotect_ptr(s) // unprotect s before returning it
+	}
 	return s
 }
 
@@ -1024,4 +1032,71 @@ func DecodeMsgpackBinArrayHeader(p []byte) (headerSize int, payloadSize int, tot
 
 	totalFrameSize = headerSize + payloadSize
 	return
+}
+
+//export ReadNewlineDelimJson
+//
+// ReadNewlineDelimJson reads a json object at byteOffset in rawStream, expects
+// it to be newline terminated, and returns the
+// decoded-into-R object and the next byteOffset to use (the byte just after
+// the terminating newline).
+//
+func ReadNewlineDelimJson(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
+
+	var start int
+	if C.TYPEOF(byteOffset) == C.REALSXP {
+		start = int(C.get_real_elt(byteOffset, 0))
+	} else if C.TYPEOF(byteOffset) == C.INTSXP {
+		start = int(C.get_int_elt(byteOffset, 0))
+	} else {
+		C.ReportErrorToR_NoReturn(C.CString("read.ndjson(x, byteOffset) requires byteOffset to be a numeric byte-offset number."))
+	}
+
+	// rawStream must be a RAWSXP
+	if C.TYPEOF(rawStream) != C.RAWSXP {
+		C.ReportErrorToR_NoReturn(C.CString("read.ndjson(x, byteOffset) requires x be a RAW vector of bytes."))
+	}
+
+	n := int(C.Rf_xlength(rawStream))
+	if n == 0 {
+		return C.R_NilValue
+	}
+
+	if start >= n {
+		C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("read.ndjson(x, byteOffset) error: byteOffset(%d) is at or beyond the length of x (x has len %d).", start, n)))
+	}
+
+	// find the next newline or end of raw array
+	next := int(C.next_newline_pos(rawStream, C.long(start+1), C.long(n)))
+
+	totalSz := next - start
+
+	bytes := make([]byte, totalSz)
+	C.memcpy(unsafe.Pointer(&bytes[0]), unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.int(start))), C.size_t(totalSz))
+
+	rObject := decodeJsonToR(bytes)
+	C.Rf_protect(rObject)
+	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(2))
+	C.Rf_protect(returnList)
+	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(0), C.Rf_ScalarReal(C.double(float64(start+totalSz))))
+	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(1), rObject)
+	C.Rf_unprotect(2) // unprotect for returnList, now that we are returning it
+	return returnList
+}
+
+func decodeJsonToR(reply []byte) C.SEXP {
+
+	h.init()
+	var r interface{}
+
+	decoder := codec.NewDecoderBytes(reply, &h.jh)
+	err := decoder.Decode(&r)
+	panicOn(err)
+
+	VPrintf("decoded type : %T\n", r)
+	VPrintf("decoded value: %#v\n", r)
+
+	s := decodeHelper(r, 0)
+	C.Rf_unprotect_ptr(s) // unprotect s before returning it
+	return s
 }
