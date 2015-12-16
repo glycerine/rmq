@@ -1003,7 +1003,8 @@ func ReadMsgpackFrame(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	C.Rf_protect(returnList)
 	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(0), C.Rf_ScalarReal(C.double(float64(start+totalSz))))
 	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(1), rObject)
-	C.Rf_unprotect(2) // unprotect for returnList, now that we are returning it
+	C.Rf_unprotect_ptr(rObject)
+	C.Rf_unprotect_ptr(returnList)
 	return returnList
 }
 
@@ -1079,15 +1080,16 @@ func ReadNewlineDelimJson(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	C.memcpy(unsafe.Pointer(&bytes[0]), unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.int(start))), C.size_t(totalSz))
 
 	rObject := decodeJsonToR(bytes)
-	C.Rf_protect(rObject)
 	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(2))
 	C.Rf_protect(returnList)
 	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(0), C.Rf_ScalarReal(C.double(float64(start+totalSz))))
 	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(1), rObject)
-	C.Rf_unprotect(2) // unprotect for returnList, now that we are returning it
+	C.Rf_unprotect_ptr(rObject)
+	C.Rf_unprotect_ptr(returnList)
 	return returnList
 }
 
+// return a protected C.SEXP
 func decodeJsonToR(reply []byte) C.SEXP {
 
 	h.init()
@@ -1103,6 +1105,5 @@ func decodeJsonToR(reply []byte) C.SEXP {
 	VPrintf("decoded value: %#v\n", r)
 
 	s := decodeHelper(r, 0)
-	C.Rf_unprotect_ptr(s) // unprotect s before returning it
 	return s
 }
