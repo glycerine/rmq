@@ -492,7 +492,9 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 
 	decoder := codec.NewDecoderBytes(reply, &h.mh)
 	err := decoder.Decode(&r)
-	panicOn(err)
+	if err != nil {
+		C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("decodeMsgpackToR() error: '%s'", err)))
+	}
 
 	VPrintf("decoded type : %T\n", r)
 	VPrintf("decoded value: %#v\n", r)
@@ -774,7 +776,9 @@ func encodeRIntoMsgpack(s C.SEXP) []byte {
 	var w bytes.Buffer
 	enc := codec.NewEncoder(&w, &h.mh)
 	err := enc.Encode(&iface)
-	panicOn(err)
+	if err != nil {
+		C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("encodeRIntoMsgpack() error: '%s'", err)))
+	}
 
 	return w.Bytes()
 }
@@ -1091,7 +1095,9 @@ func decodeJsonToR(reply []byte) C.SEXP {
 
 	decoder := codec.NewDecoderBytes(reply, &h.jh)
 	err := decoder.Decode(&r)
-	panicOn(err)
+	if err != nil {
+		C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("read.ndjson() error: '%s'", err)))
+	}
 
 	VPrintf("decoded type : %T\n", r)
 	VPrintf("decoded value: %#v\n", r)
