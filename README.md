@@ -98,6 +98,52 @@ $yum
 I've added two example scripts, `example-server.R` and `example-client.R`. These live in the top level of the repo. Run `example-server.R` first. Then in a different window, run `example-client.R`. These are simultaneously bash scripts and R source-able scripts; you can run them straight from the shell if 'R' is on your PATH.
 
 
+# And the reverse: embedding R inside your Golang program
+
+In addition to using a Golang library under R, one can alternatively embed R as a library inside a Go executable. This is equally easy
+using the SexpToIface() function. Here is an example (this is taken from the main source file [src/rmq/rmq.go](https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go).
+
+~~~
+func main() {
+	// Give an example also of how to embed R in a Go program.
+
+        // Introduction to embedding R:
+	//
+	// While RMQ is mainly designed to embed Go under R, it
+	// defines functions that make embedding R in Go
+	// quite easy too. We use SexpToIface() to generate
+	// a go inteface{} value. For simple uses, this may be
+	// more than enough.
+	//
+	// If you wish to turn results into
+	// a pre-defined Go structure, the interface{} value could
+	// transformed into msgpack (as in encodeRIntoMsgpack())
+	// and from there automatically parsed into Go structures
+	// if you define the Go structures and use
+	// https://github.com/tinylib/msgp to generate the
+	// go struct <-> msgpack encoding/decoding boilerplate.
+	// The tinylib/msgp library uses go generate and is
+	// blazing fast. This also avoids maintaining a separate
+	// IDL file. Your Go source code becomes the defining document
+        // for your data structures.
+
+	var iface interface{}
+	C.callInitEmbeddedR()
+	myRScript := "rnorm(100)" // generate 100 Gaussian(0,1) samples
+	var evalErrorOccurred C.int
+	r := C.callParseEval(C.CString(myRScript), &evalErrorOccurred)
+	if evalErrorOccurred == 0 && r != C.R_NilValue {
+		C.Rf_protect(r)
+		iface = SexpToIface(r)
+		fmt.Printf("\n Embedding R in Golang example: I got back from evaluating myRScript:\n")
+		goon.Dump(iface)
+		C.Rf_unprotect(1) // unprotect r
+	}
+	C.callEndEmbeddedR()
+}
+~~~
+
+
 ### copyright and license
 
 Copyright 2015 Jason E. Aten, Ph.D.
