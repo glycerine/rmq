@@ -172,10 +172,12 @@ func RmqWebsocketCall(addr_ C.SEXP, msg_ C.SEXP, timeout_msec_ C.SEXP) C.SEXP {
 // of the internal encodeRIntoMsgpack(), it is also useful
 // on its own for doing things like embedding R inside Go.
 //
-// Currently VECSXP, REALSXP, INTSXP, RAWSXP, and STRSXP
-// are supported. In other words, we decode: lists,
+// Currently VECSXP, REALSXP, INTSXP, RAWSXP, STRSXP, and
+// LGLSXP are supported. In other words, we decode: lists,
 // numeric vectors, integer vectors, raw byte vectors,
-// string vectors, and recursively defined list elements.
+// string vectors, boolean vectors, and recursively defined
+// list elements.
+//
 // If list elements are named, the named list is turned
 // into a map in Go.
 func SexpToIface(s C.SEXP) interface{} {
@@ -183,4 +185,32 @@ func SexpToIface(s C.SEXP) interface{} {
 	// See the actually implementation here:
 	// https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go
 	return interface{}(nil)
+}
+
+// ReadMsgpackFrame reads the msgpack frame at byteOffset in rawStream,
+// decodes the 2-5 bytes of a msgpack binary array (either bin8, bin16,
+// or bin32), and returns and the decoded-into-R object and the next
+// byteOffset to use. This is a helper for dealing with large byte
+// streams of msgpack bytes.
+func ReadMsgpackFrame(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
+	return rawStream
+}
+
+// ReadNewlineDelimJson reads a json object at byteOffset in rawStream, expects
+// it to be newline terminated (see http://jsonlines.org/)), and returns the
+// decoded-into-R object and the next byteOffset to use (the byte just after
+// the terminating newline). This is a helper for dealing with large
+// newline delimited streams of JSON text that are stored as raw byte arrays.
+func ReadNewlineDelimJson(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
+	return rawStream
+}
+
+// DecodeMsgpackBinArrayHeader parses the first 2-5 bytes of a
+// msgpack-format serialized binary array and returns the
+// headerSize, payloadSize and totalFramesize for the frame
+// the starts at p[0]. This is a utility function for decoding
+// msgpack objects that are always wrapped in a 2-5 byte binary
+// array header.
+func DecodeMsgpackBinArrayHeader(p []byte) (headerSize int, payloadSize int, totalFrameSize int, err error) {
+	return
 }

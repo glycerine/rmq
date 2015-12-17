@@ -1008,6 +1008,8 @@ func ReadMsgpackFrame(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	return returnList
 }
 
+// DecodeMsgpackBinArrayHeader parses the first 2-5 bytes of a msgpack-format serialized binary array
+// and returns the headerSize, payloadSize and totalFramesize for the frame the starts at p[0].
 func DecodeMsgpackBinArrayHeader(p []byte) (headerSize int, payloadSize int, totalFrameSize int, err error) {
 	lenp := len(p)
 
