@@ -101,7 +101,7 @@ I've added two example scripts, `example-server.R` and `example-client.R`. These
 # And the reverse: embedding R inside your Golang program
 
 In addition to using a Golang library under R, one can alternatively embed R as a library inside a Go executable. This is equally easy
-using the SexpToIface() function. Here is an example (this is taken from the main source file [src/rmq/rmq.go](https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go).
+using the SexpToIface() function. Here is an example. This is taken from the main source file [src/rmq/rmq.go](https://github.com/glycerine/rmq/blob/master/src/rmq/rmq.go). 
 
 ~~~
 func main() {
