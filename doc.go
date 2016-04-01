@@ -37,7 +37,7 @@ installation, using the standard tools for R.
 
 This package doesn't directly create a re-usable go library. Instead
 we target a c-shared library (rmq.so) that will install
-into R using 'R CMD install rmq'. See: 'make install' or 'make build' followed by
+into R using 'R CMD INSTALL rmq'. See: 'make install' or 'make build' followed by
 doing `install.packages('./rmq_1.0.1.tar.gz', repos=NULL)`
 from inside R (assuming the package is in your current directory;
 if not then adjust the ./ part of the package path).

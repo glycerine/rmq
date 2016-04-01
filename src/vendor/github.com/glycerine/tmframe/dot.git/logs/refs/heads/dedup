@@ -1,0 +1,15 @@
+0000000000000000000000000000000000000000 ed75c4fffe34a3ffa27f94a5ee456ba12bde39c4 Jason E. Aten <j.e.aten@gmail.com> 1456461944 -0800	branch: Created from HEAD
+ed75c4fffe34a3ffa27f94a5ee456ba12bde39c4 86671eeb65e023df8d3fa655154729f381dc2493 Jason E. Aten <j.e.aten@gmail.com> 1456462493 -0800	commit: rename to writer.go; tfdedup compiles
+86671eeb65e023df8d3fa655154729f381dc2493 814e554543510ae75f98c66ebd9440cdacb1087b Jason E. Aten <j.e.aten@gmail.com> 1456462502 -0800	commit: rename to writer.go; tfdedup compiles
+814e554543510ae75f98c66ebd9440cdacb1087b 67aaf8ee1cd678690ce48a7e3f5c868960751ddc Jason E. Aten <j.e.aten@gmail.com> 1456462534 -0800	commit: add ignore
+67aaf8ee1cd678690ce48a7e3f5c868960751ddc 1f8fcce1b4bc7981104431101b1422a785942be5 Jason E. Aten <j.e.aten@gmail.com> 1456462753 -0800	commit: build tfdedup
+1f8fcce1b4bc7981104431101b1422a785942be5 9c94d2152a2aeb6dfca9a9426460ab247120ea8f Jason E. Aten <j.e.aten@gmail.com> 1456464376 -0800	commit: checkpoint
+9c94d2152a2aeb6dfca9a9426460ab247120ea8f 385835852ea7c6bdfcd56f87a8700c636cd8178f Jason E. Aten <j.e.aten@gmail.com> 1456464432 -0800	commit: checkpoint
+385835852ea7c6bdfcd56f87a8700c636cd8178f 5f02da271aaf9fa505a16bfc5806599d7c1ed69c Jason E. Aten <j.e.aten@gmail.com> 1456465621 -0800	commit: add Blake2b() hash function
+5f02da271aaf9fa505a16bfc5806599d7c1ed69c ff3852c11ce74ba302fa47826c4456042c6ba306 Jason E. Aten <j.e.aten@gmail.com> 1456469241 -0800	commit: atg. dedup in place
+ff3852c11ce74ba302fa47826c4456042c6ba306 d3c22ff41c5f04e037843908b0c8b98eb7541107 Jason E. Aten <j.e.aten@gmail.com> 1456469563 -0800	commit: vendor hashmap from gnatsd
+d3c22ff41c5f04e037843908b0c8b98eb7541107 7eca07a61e1f55d753f680a811c473f54c881ff0 Jason E. Aten <j.e.aten@gmail.com> 1456472085 -0800	commit: checkpoint, dedup out of order
+7eca07a61e1f55d753f680a811c473f54c881ff0 1e36854722678a3922a915f2a92b36ddbb1f1799 Jason E. Aten <j.e.aten@gmail.com> 1456473365 -0800	commit: atg. dedup test working
+1e36854722678a3922a915f2a92b36ddbb1f1799 ffc3ca7cae23e386a1d28f1ba2872f469435e998 Jason E. Aten <j.e.aten@gmail.com> 1456475157 -0800	commit: REVISE SPEC: PTI=1 is now 16 byte message
+ffc3ca7cae23e386a1d28f1ba2872f469435e998 051e4e1ee5968b9451b5bf4a0a1f55ce3e92b146 Jason E. Aten <j.e.aten@gmail.com> 1456475365 -0800	commit: atg. clarify scope of dedup test
+051e4e1ee5968b9451b5bf4a0a1f55ce3e92b146 0c636b32f45d5e5203ccceb6920d98e9ef3579ae Jason E. Aten <j.e.aten@gmail.com> 1456475557 -0800	commit: note PTI=1 SPEC update in README
