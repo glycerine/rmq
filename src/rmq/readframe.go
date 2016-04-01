@@ -47,7 +47,9 @@ func ReadTmFrame(path_ C.SEXP) C.SEXP {
 toploop:
 	for ; err == nil; i++ {
 		//_, _, err, raw = fr.NextFrame(&frame)
+		fmt.Printf("just before i=%v NextFrame\n", i)
 		_, _, err, _ = fr.NextFrame(&frame)
+		fmt.Printf("done with NextFrame, i = %v\n", i)
 		if err != nil {
 			if err == io.EOF {
 				break toploop
@@ -55,6 +57,7 @@ toploop:
 			C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("ReadTmFrame() error reading '%s', fr.NextFrame() at i=%v gave error: '%v'",
 				path, i, err)))
 		}
+		fmt.Printf(" just before Stringify...\n")
 		str := frame.Stringify(-1, false, false, false)
 		fmt.Printf("I see '%s'\n", str)
 	} // end for toploop
