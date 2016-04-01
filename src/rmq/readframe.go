@@ -36,20 +36,22 @@ func ReadTmFrame(path_ C.SEXP) C.SEXP {
 	}
 
 	///  begin TMFRAME read
-
+	f, err := os.Open(path)
+	if err != nil {
+		C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("ReadTmFrame() error, could not open path '%s': '%s'", path, err)))
+	}
 	i := int64(1)
-	fr := tf.NewFrameReader(os.Stdin, 1024*1024)
+	fr := tf.NewFrameReader(f, 1024*1024)
 
 	var frame tf.Frame
 	//var raw []byte
-	var err error
 
 toploop:
 	for ; err == nil; i++ {
 		//_, _, err, raw = fr.NextFrame(&frame)
-		fmt.Printf("just before i=%v NextFrame\n", i)
+		//fmt.Printf("just before i=%v NextFrame\n", i)
 		_, _, err, _ = fr.NextFrame(&frame)
-		fmt.Printf("done with NextFrame, i = %v\n", i)
+		//fmt.Printf("done with NextFrame, i = %v\n", i)
 		if err != nil {
 			if err == io.EOF {
 				break toploop
@@ -57,9 +59,9 @@ toploop:
 			C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("ReadTmFrame() error reading '%s', fr.NextFrame() at i=%v gave error: '%v'",
 				path, i, err)))
 		}
-		fmt.Printf(" just before Stringify...\n")
+		//fmt.Printf(" just before Stringify...\n")
 		str := frame.Stringify(-1, false, false, false)
-		fmt.Printf("I see '%s'\n", str)
+		fmt.Printf("%s\n", str)
 	} // end for toploop
 
 	// return decodeMsgpackToR(bytes)
