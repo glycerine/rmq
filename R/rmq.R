@@ -295,3 +295,14 @@ r2r.call <- function(msg, addr = rmq.default.addr) {
   unserialize(rmq.call(serialize(msg, connection=NULL), addr))
 }
 
+#' read TMFRAME formatted timeseries
+#'
+#' Given a filesystem path to a TMFRAME file, \code{read.tmframe} will return an R dataframe with the series.
+#'
+#' @param path A string holding the filesystem path to the TMFRAME file.
+#'
+#' @family rmq functions
+#'
+read.tmframe <- function(path) {
+  .Call("ReadTmFrame", path)
+}

@@ -9,5 +9,6 @@ export(
        r2r.call,
        rmq.default.addr,
        read.msgpack.frame,
-       read.ndjson
+       read.ndjson,
+       read.tmframe
 )

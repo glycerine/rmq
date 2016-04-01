@@ -22,8 +22,8 @@ Given a vector of raw bytes written in framed-msgpack format, \code{read.msgpack
 
 Other rmq.functions: \code{\link{from.msgpack}},
   \code{\link{r2r.call}}, \code{\link{r2r.server}},
-  \code{\link{read.ndjson}}, \code{\link{rmq.call}},
-  \code{\link{rmq.default.addr}}, \code{\link{rmq.server}},
-  \code{\link{to.msgpack}}
+  \code{\link{read.ndjson}}, \code{\link{read.tmframe}},
+  \code{\link{rmq.call}}, \code{\link{rmq.default.addr}},
+  \code{\link{rmq.server}}, \code{\link{to.msgpack}}
 }
 

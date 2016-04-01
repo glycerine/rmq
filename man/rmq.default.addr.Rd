@@ -15,8 +15,9 @@ The default address bound by \code{rmq.server}.
 Other rmq.functions: \code{\link{from.msgpack}},
   \code{\link{r2r.call}}, \code{\link{r2r.server}},
   \code{\link{read.msgpack.frame}},
-  \code{\link{read.ndjson}}, \code{\link{rmq.call}},
-  \code{\link{rmq.server}}, \code{\link{to.msgpack}}
+  \code{\link{read.ndjson}}, \code{\link{read.tmframe}},
+  \code{\link{rmq.call}}, \code{\link{rmq.server}},
+  \code{\link{to.msgpack}}
 }
 \keyword{datasets}
 
