@@ -14,6 +14,7 @@ import (
 	tf "github.com/glycerine/tmframe"
 	"io"
 	"os"
+	"unsafe"
 	//"time"
 )
 
@@ -101,6 +102,7 @@ func tmFramesToR(slc []*tf.Frame) C.SEXP {
 		}
 	*/
 
+	/* works, but give us a list not a vector:
 	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(n))
 	C.Rf_protect(returnList)
 
@@ -114,6 +116,27 @@ func tmFramesToR(slc []*tf.Frame) C.SEXP {
 
 		C.SET_VECTOR_ELT(returnList, C.R_xlen_t(i), C.Rf_ScalarReal(C.double(ftm)))
 	}
+
 	C.Rf_unprotect_ptr(returnList)
 	return returnList
+	*/
+
+	var sxpTy C.SEXPTYPE = C.REALSXP
+	numSlice := C.allocVector(sxpTy, C.R_xlen_t(n))
+	C.Rf_protect(numSlice)
+	size := unsafe.Sizeof(C.double(0))
+
+	var rhs C.double
+	ptrNumSlice := unsafe.Pointer(C.REAL(numSlice))
+	const msec = 1e6
+	for i, f := range slc {
+		tmu := f.Tm()
+		ftm := float64(tmu / msec)
+		fmt.Printf("tmu[%v]=%v / ftm=%v\n", i, tmu, ftm)
+		rhs = C.double(ftm)
+		*((*C.double)(unsafe.Pointer(uintptr(ptrNumSlice) + size*uintptr(i)))) = rhs
+	}
+	C.Rf_unprotect_ptr(numSlice)
+	return numSlice
+
 }
