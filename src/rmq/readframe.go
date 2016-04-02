@@ -14,6 +14,7 @@ import (
 	tf "github.com/glycerine/tmframe"
 	"io"
 	"os"
+	//"time"
 )
 
 //export ReadTmFrame
@@ -43,15 +44,13 @@ func ReadTmFrame(path_ C.SEXP) C.SEXP {
 	i := int64(1)
 	fr := tf.NewFrameReader(f, 1024*1024)
 
-	var frame tf.Frame
+	var frame *tf.Frame
 	//var raw []byte
+	res := []*tf.Frame{}
 
 toploop:
 	for ; err == nil; i++ {
-		//_, _, err, raw = fr.NextFrame(&frame)
-		//fmt.Printf("just before i=%v NextFrame\n", i)
-		_, _, err, _ = fr.NextFrame(&frame)
-		//fmt.Printf("done with NextFrame, i = %v\n", i)
+		frame, _, err, _ = fr.NextFrame(nil)
 		if err != nil {
 			if err == io.EOF {
 				break toploop
@@ -59,11 +58,60 @@ toploop:
 			C.ReportErrorToR_NoReturn(C.CString(fmt.Sprintf("ReadTmFrame() error reading '%s', fr.NextFrame() at i=%v gave error: '%v'",
 				path, i, err)))
 		}
-		//fmt.Printf(" just before Stringify...\n")
-		str := frame.Stringify(-1, false, false, false)
-		fmt.Printf("%s\n", str)
+		res = append(res, frame)
 	} // end for toploop
 
-	// return decodeMsgpackToR(bytes)
+	if len(res) > 0 {
+		return tmFramesToR(res)
+	}
 	return C.R_NilValue
+}
+
+func tmFramesToR(slc []*tf.Frame) C.SEXP {
+	n := len(slc)
+	if n == 0 {
+		return C.R_NilValue
+	}
+
+	/*
+		if evtnum == EvJson || (evtnum >= 2000 && evtnum <= 9999) {
+			pp := prettyPrintJson(prettyPrint, frame.Data)
+			fmt.Fprintf(w, "  %s", string(pp))
+		}
+		if evtnum == EvMsgpKafka || evtnum == EvMsgpack {
+			// decode msgpack to json with ugorji/go/codec
+
+			var iface interface{}
+			dec := codec.NewDecoderBytes(frame.Data, &msgpHelper.mh)
+			err := dec.Decode(&iface)
+			panicOn(err)
+
+			//Q("iface = '%#v'", iface)
+
+			var wbuf bytes.Buffer
+			enc := codec.NewEncoder(&wbuf, &msgpHelper.jh)
+			err = enc.Encode(&iface)
+			panicOn(err)
+			pp := prettyPrintJson(prettyPrint, wbuf.Bytes())
+			fmt.Fprintf(w, " %s", string(pp))
+		}
+
+		// return decodeMsgpackToR(bytes)
+
+		}
+	*/
+
+	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(n))
+	C.Rf_protect(returnList)
+
+	const msec = 1e6
+	for i, f := range slc {
+		tmu := f.Tm()
+		//tm := time.Unix(0, tmu).UTC()
+		//evtnum := f.GetEvtnum()
+
+		C.SET_VECTOR_ELT(returnList, C.R_xlen_t(i), C.Rf_ScalarReal(C.double(float64(tmu/msec))))
+	}
+	C.Rf_unprotect_ptr(returnList)
+	return returnList
 }
