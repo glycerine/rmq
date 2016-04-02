@@ -74,52 +74,11 @@ func tmFramesToR(slc []*tf.Frame) C.SEXP {
 		return C.R_NilValue
 	}
 
-	/*
-		if evtnum == EvJson || (evtnum >= 2000 && evtnum <= 9999) {
-			pp := prettyPrintJson(prettyPrint, frame.Data)
-			fmt.Fprintf(w, "  %s", string(pp))
-		}
-		if evtnum == EvMsgpKafka || evtnum == EvMsgpack {
-			// decode msgpack to json with ugorji/go/codec
+	payloadList := C.allocVector(C.VECSXP, C.R_xlen_t(n))
+	C.Rf_protect(payloadList)
 
-			var iface interface{}
-			dec := codec.NewDecoderBytes(frame.Data, &msgpHelper.mh)
-			err := dec.Decode(&iface)
-			panicOn(err)
-
-			//Q("iface = '%#v'", iface)
-
-			var wbuf bytes.Buffer
-			enc := codec.NewEncoder(&wbuf, &msgpHelper.jh)
-			err = enc.Encode(&iface)
-			panicOn(err)
-			pp := prettyPrintJson(prettyPrint, wbuf.Bytes())
-			fmt.Fprintf(w, " %s", string(pp))
-		}
-
-		// return decodeMsgpackToR(bytes)
-
-		}
-	*/
-
-	/* works, but give us a list not a vector:
-	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(n))
+	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(2))
 	C.Rf_protect(returnList)
-
-	const msec = 1e6
-	for i, f := range slc {
-		tmu := f.Tm()
-		ftm := float64(tmu / msec)
-		fmt.Printf("tmu[%v]=%v / ftm=%v\n", i, tmu, ftm)
-		//tm := time.Unix(0, tmu).UTC()
-		//evtnum := f.GetEvtnum()
-
-		C.SET_VECTOR_ELT(returnList, C.R_xlen_t(i), C.Rf_ScalarReal(C.double(ftm)))
-	}
-
-	C.Rf_unprotect_ptr(returnList)
-	return returnList
-	*/
 
 	var sxpTy C.SEXPTYPE = C.REALSXP
 	numSlice := C.allocVector(sxpTy, C.R_xlen_t(n))
@@ -130,13 +89,29 @@ func tmFramesToR(slc []*tf.Frame) C.SEXP {
 	ptrNumSlice := unsafe.Pointer(C.REAL(numSlice))
 	const msec = 1e6
 	for i, f := range slc {
+		// timestamp
 		tmu := f.Tm()
 		ftm := float64(tmu / msec)
 		fmt.Printf("tmu[%v]=%v / ftm=%v\n", i, tmu, ftm)
 		rhs = C.double(ftm)
 		*((*C.double)(unsafe.Pointer(uintptr(ptrNumSlice) + size*uintptr(i)))) = rhs
-	}
-	C.Rf_unprotect_ptr(numSlice)
-	return numSlice
 
+		// payload
+		evtnum := f.GetEvtnum()
+		if evtnum == tf.EvJson || (evtnum >= 2000 && evtnum <= 9999) {
+			//pp := prettyPrintJson(prettyPrint, frame.Data)
+			//fmt.Fprintf(w, "json decoded:  %s", string(pp))
+		} else if evtnum == tf.EvMsgpKafka || evtnum == tf.EvMsgpack {
+			// decode msgpack to json with ugorji/go/codec
+			C.SET_VECTOR_ELT(payloadList, C.R_xlen_t(i), decodeMsgpackToR(f.Data))
+		}
+	}
+
+	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(0), numSlice)
+	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(1), payloadList)
+
+	C.Rf_unprotect_ptr(numSlice)
+	C.Rf_unprotect_ptr(returnList)
+	C.Rf_unprotect_ptr(payloadList)
+	return returnList
 }
