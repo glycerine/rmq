@@ -485,6 +485,7 @@ func init() {
 	h.init()
 }
 
+// returns an unprotected SEXP
 func decodeMsgpackToR(reply []byte) C.SEXP {
 
 	h.init()
@@ -499,7 +500,7 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 	VPrintf("decoded type : %T\n", r)
 	VPrintf("decoded value: %#v\n", r)
 
-	s := decodeHelper(r, 0)
+	s := decodeHelper(r, 0, true)
 	if s != nil {
 		C.Rf_unprotect_ptr(s) // unprotect s before returning it
 	}
@@ -513,7 +514,11 @@ const DBL_MANT_DIG = 53
 // and the user/client/caller of decodeHelper() is responsible
 // for unprotecting s if they are embedding it. This is
 // much easier to audit for correctness.
-func decodeHelper(r interface{}, depth int) (s C.SEXP) {
+//
+// if jsonHeuristicDecode then we'll treat raw []byte that
+// start with '{' as JSON and try to decode them too.
+//
+func decodeHelper(r interface{}, depth int, jsonHeuristicDecode bool) (s C.SEXP) {
 
 	VPrintf("decodeHelper() at depth %d, decoded type is %T\n", depth, r)
 	switch val := r.(type) {
@@ -652,7 +657,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		intslice := C.allocVector(sxpTy, C.R_xlen_t(lenval))
 		C.Rf_protect(intslice)
 		for i := range val {
-			elt := decodeHelper(val[i], depth+1)
+			elt := decodeHelper(val[i], depth+1, jsonHeuristicDecode)
 			C.SET_VECTOR_ELT(intslice, C.R_xlen_t(i), elt)
 			C.Rf_unprotect_ptr(elt) // safely inside intslice now
 		}
@@ -669,7 +674,7 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 		sortedMapKey, sortedMapVal := makeSortedSlicesFromMap(val)
 		for i := range sortedMapKey {
 
-			ele := decodeHelper(sortedMapVal[i], depth+1)
+			ele := decodeHelper(sortedMapVal[i], depth+1, jsonHeuristicDecode)
 			C.SET_VECTOR_ELT(s, C.R_xlen_t(i), ele)
 			C.Rf_unprotect_ptr(ele) // unprotect ele now that it is safely inside s.
 
@@ -684,6 +689,13 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 	case []byte:
 		VPrintf("depth %d found []byte case: val = %#v\n", depth, val)
 
+		if jsonHeuristicDecode {
+			if len(val) > 0 && val[0] == '{' {
+				jsonToR := decodeJsonToR(val)
+				C.Rf_protect(jsonToR)
+				return jsonToR
+			}
+		}
 		rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(len(val)))
 		C.Rf_protect(rawmsg)
 		if len(val) > 0 {
@@ -1084,6 +1096,7 @@ func ReadNewlineDelimJson(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	fromPtr := unsafe.Pointer(C.get_raw_elt_ptr(rawStream, C.ulonglong(start)))
 	C.memcpy(unsafe.Pointer(&bytes[0]), fromPtr, C.size_t(totalSz))
 	rObject := decodeJsonToR(bytes)
+	C.Rf_protect(rObject)
 	returnList := C.allocVector(C.VECSXP, C.R_xlen_t(2))
 	C.Rf_protect(returnList)
 	C.SET_VECTOR_ELT(returnList, C.R_xlen_t(0), C.Rf_ScalarReal(C.double(float64(start+totalSz))))
@@ -1094,7 +1107,8 @@ func ReadNewlineDelimJson(rawStream C.SEXP, byteOffset C.SEXP) C.SEXP {
 	return returnList
 }
 
-// return a protected C.SEXP
+// return an un-protected C.SEXP, like decodeMsgpackToR does;
+// we need this symmetry since one can call the other now.
 func decodeJsonToR(reply []byte) C.SEXP {
 
 	h.init()
@@ -1109,7 +1123,10 @@ func decodeJsonToR(reply []byte) C.SEXP {
 	VPrintf("decoded type : %T\n", r)
 	VPrintf("decoded value: %#v\n", r)
 
-	s := decodeHelper(r, 0)
+	s := decodeHelper(r, 0, true)
+	if s != nil {
+		C.Rf_unprotect_ptr(s) // unprotect s before returning it
+	}
 	return s
 }
 
