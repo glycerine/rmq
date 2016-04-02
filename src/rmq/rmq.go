@@ -686,7 +686,9 @@ func decodeHelper(r interface{}, depth int) (s C.SEXP) {
 
 		rawmsg := C.allocVector(C.RAWSXP, C.R_xlen_t(len(val)))
 		C.Rf_protect(rawmsg)
-		C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&val[0]), C.size_t(len(val)))
+		if len(val) > 0 {
+			C.memcpy(unsafe.Pointer(C.RAW(rawmsg)), unsafe.Pointer(&val[0]), C.size_t(len(val)))
+		}
 		return rawmsg
 
 	case nil:

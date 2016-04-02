@@ -99,10 +99,9 @@ func tmFramesToR(slc []*tf.Frame) C.SEXP {
 		// payload
 		evtnum := f.GetEvtnum()
 		if evtnum == tf.EvJson || (evtnum >= 2000 && evtnum <= 9999) {
-			//pp := prettyPrintJson(prettyPrint, frame.Data)
-			//fmt.Fprintf(w, "json decoded:  %s", string(pp))
+			C.SET_VECTOR_ELT(payloadList, C.R_xlen_t(i), decodeJsonToR(f.Data))
+
 		} else if evtnum == tf.EvMsgpKafka || evtnum == tf.EvMsgpack {
-			// decode msgpack to json with ugorji/go/codec
 			C.SET_VECTOR_ELT(payloadList, C.R_xlen_t(i), decodeMsgpackToR(f.Data))
 		}
 	}
