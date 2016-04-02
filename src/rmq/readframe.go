@@ -107,11 +107,12 @@ func tmFramesToR(slc []*tf.Frame) C.SEXP {
 	const msec = 1e6
 	for i, f := range slc {
 		tmu := f.Tm()
-		fmt.Printf("tmu[%v]=%v\n", i, tmu)
+		ftm := float64(tmu / msec)
+		fmt.Printf("tmu[%v]=%v / ftm=%v\n", i, tmu, ftm)
 		//tm := time.Unix(0, tmu).UTC()
 		//evtnum := f.GetEvtnum()
 
-		//		C.SET_VECTOR_ELT(returnList, C.R_xlen_t(i), C.Rf_ScalarReal(C.double(float64(tmu/msec))))
+		C.SET_VECTOR_ELT(returnList, C.R_xlen_t(i), C.Rf_ScalarReal(C.double(ftm)))
 	}
 	C.Rf_unprotect_ptr(returnList)
 	return returnList
