@@ -92,7 +92,7 @@ func tmFramesToR(slc []*tf.Frame) C.SEXP {
 		// timestamp
 		tmu := f.Tm()
 		ftm := float64(tmu / msec)
-		fmt.Printf("tmu[%v]=%v / ftm=%v\n", i, tmu, ftm)
+		//fmt.Printf("tmu[%v]=%v / ftm=%v\n", i, tmu, ftm)
 		rhs = C.double(ftm)
 		*((*C.double)(unsafe.Pointer(uintptr(ptrNumSlice) + size*uintptr(i)))) = rhs
 
