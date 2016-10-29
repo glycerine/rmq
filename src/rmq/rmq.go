@@ -80,7 +80,7 @@ var upgrader = websocket.Upgrader{} // use default options
 // an incoming message. The returned value of handler
 // becomes the reply to the client.
 //
-// rho_ in an R environment in which the handler_ callback
+// rho_ is an R environment in which the handler_ callback
 // will occur. The user-level wrapper rmq.server() provides
 // a new environment for every call back by default, so
 // most users won't need to worry about rho_.
