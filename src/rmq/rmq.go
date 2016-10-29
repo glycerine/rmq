@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"runtime/debug"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -510,6 +511,8 @@ func decodeMsgpackToR(reply []byte) C.SEXP {
 const FLT_RADIX = 2
 const DBL_MANT_DIG = 53
 
+var panicErrIntro = "rmq.decodeHelper detected malformed msgpack panic: "
+
 // new policy: decodeHelper should always return a protected s,
 // and the user/client/caller of decodeHelper() is responsible
 // for unprotecting s if they are embedding it. This is
@@ -519,6 +522,18 @@ const DBL_MANT_DIG = 53
 // start with '{' as JSON and try to decode them too.
 //
 func decodeHelper(r interface{}, depth int, jsonHeuristicDecode bool) (s C.SEXP) {
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			// truncated or mal-formed msgpack can cause us problems...
+			err, isErr := r.(error)
+			if !isErr {
+				err = fmt.Errorf("'%v'", r)
+			}
+			C.ReportErrorToR_NoReturn(C.CString(panicErrIntro + err.Error() + "\n" + string(debug.Stack())))
+		}
+	}()
 
 	VPrintf("decodeHelper() at depth %d, decoded type is %T\n", depth, r)
 	switch val := r.(type) {
