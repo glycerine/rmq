@@ -4,8 +4,11 @@
 
 ~~~
 $ go get -d github.com/glycerine/rmq
-$ cd $GOPATH/src/github.com/glycerine
-$ R CMD INSTALL rmq
+$ cd $GOPATH/src/github.com/glycerine/rmq
+$ make install
+$ R
+> require(rmq)
+>
 ~~~
 
 ## docs
