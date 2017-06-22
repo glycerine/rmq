@@ -2,6 +2,12 @@
 
 ## installation
 
+pre-reqs:
+
+a) make sure you have a working `go` (golang) installation. 
+
+b) make sure you have a working gcc (C compiler) installed.
+
 ~~~
 $ go get -d github.com/glycerine/rmq
 $ cd $GOPATH/src/github.com/glycerine/rmq
@@ -10,6 +16,14 @@ $ R
 > require(rmq)
 >
 ~~~
+
+this should also work, once you have done `make install` to build vendor.tar.gz:
+
+~~~
+$ cd $GOPATH/src/github.com/glycerine
+$ R CMD INSTALL rmq
+~~~
+
 
 ## docs
 
