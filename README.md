@@ -1,5 +1,12 @@
 # rmq: R Messaging and Queuing
 
+## installation
+
+~~~
+$ go get -d github.com/glycerine/rmq
+$ cd $GOPATH/src/github.com/glycerine
+$ R CMD INSTALL rmq
+~~~
 
 ## docs
 
