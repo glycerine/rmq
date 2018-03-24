@@ -8,6 +8,23 @@ a) make sure you have a working `go` (golang) installation.
 
 b) make sure you have a working gcc (C compiler) installed.
 
+c) make sure you have R installed. Locate your 'R.h' header
+   file, and add a '-I' flag to the src/Makefile in these
+   places, to reflect your local location of the 'R.h' and
+   related headers.
+
+https://github.com/glycerine/rmq/blob/master/src/Makefile#L15
+
+https://github.com/glycerine/rmq/blob/master/src/Makefile#L26
+
+For example, if your R.h header has been installed in /usr/local/lib/R/include, then
+you would have the Makefile lines look like this:
+~~~
+gcc -fPIC -O2 -c -o interface.o cpp/interface.cpp -Iinclude/ -I/usr/local/lib/R/include
+~~~
+
+then build:
+
 ~~~
 $ go get -d github.com/glycerine/rmq
 $ cd $GOPATH/src/github.com/glycerine/rmq
